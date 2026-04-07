@@ -1,0 +1,7 @@
+<svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+  <rect width="180" height="180" rx="40" fill="#1c1c28"/>
+  <!-- Santoku blade -->
+  <path d="M28 120 L140 120 L158 102 Q164 92 152 86 L48 50 Q38 47 32 56 L28 120Z" fill="#e8d5c4"/>
+  <!-- Handle -->
+  <path d="M32 56 L28 120 L14 120 Q8 120 8 114 L8 72 Q8 58 18 54 L32 56Z" fill="#e8d5c4" opacity="0.55"/>
+</svg>
