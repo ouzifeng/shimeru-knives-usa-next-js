@@ -33,8 +33,8 @@ export default function ContactPage() {
           Our Address
         </h2>
         <p className="text-sm text-foreground/80">
-          Kemp House 152–160 City Road<br />
-          London EC1V 2NX
+          1000 N West St, Suite 1200<br />
+          Wilmington, DE 19801
         </p>
       </div>
     </div>
