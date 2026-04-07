@@ -40,6 +40,10 @@ export const metadata: Metadata = {
   metadataBase: new URL(storeConfig.url),
   alternates: {
     canonical: "/",
+    languages: {
+      "en-GB": "https://www.shimeruknives.co.uk",
+      "en-US": "https://www.shimeruknives.com",
+    },
   },
   robots: {
     index: true,
