@@ -152,6 +152,12 @@ async function upsertProducts(products: WCProduct[]) {
   // 2. Filter attribute options to only those with actual variations
   const variablePrices = new Map<number, { regular_price: number; sale_price: number }>();
   const variationOptionsByProduct = new Map<number, Set<string>>();
+  const allVariationRows: Array<{
+    id: number; product_id: number; sku: string | null; price: number;
+    regular_price: number | null; sale_price: number | null; on_sale: boolean;
+    stock_status: string; stock_quantity: number | null;
+    attributes: unknown[]; image: unknown; cached_at: string;
+  }> = [];
   const variableProducts = products.filter((p) => p.type === "variable");
   for (const p of variableProducts) {
     try {
@@ -165,6 +171,24 @@ async function upsertProducts(products: WCProduct[]) {
           }
         }
         variationOptionsByProduct.set(p.id, opts);
+
+        // Store variation rows for bulk upsert
+        for (const v of variations) {
+          allVariationRows.push({
+            id: v.id,
+            product_id: p.id,
+            sku: v.sku || null,
+            price: parseFloat(v.price) || 0,
+            regular_price: v.regular_price ? parseFloat(v.regular_price) : null,
+            sale_price: v.sale_price ? parseFloat(v.sale_price) : null,
+            on_sale: v.on_sale,
+            stock_status: v.stock_status,
+            stock_quantity: v.stock_quantity ?? null,
+            attributes: v.attributes,
+            image: v.image,
+            cached_at: now,
+          });
+        }
 
         // Get regular price for on-sale products
         if (p.on_sale) {
@@ -213,13 +237,22 @@ async function upsertProducts(products: WCProduct[]) {
 
   const productIds = products.map((p) => p.id);
 
-  // Upsert products and delete old relations in parallel
+  // Upsert products, variations, and delete old relations in parallel
+  const variableIds = variableProducts.map((p) => p.id);
   await Promise.all([
     admin.from("products").upsert(rows, { onConflict: "id" }),
     admin.from("product_attributes").delete().in("product_id", productIds),
     admin.from("product_categories").delete().in("product_id", productIds),
     admin.from("product_tags").delete().in("product_id", productIds),
+    ...(variableIds.length
+      ? [admin.from("product_variations").delete().in("product_id", variableIds)]
+      : []),
   ]);
+
+  // Upsert variations after clearing old ones
+  if (allVariationRows.length) {
+    await admin.from("product_variations").upsert(allVariationRows, { onConflict: "id" });
+  }
 
   // Insert fresh attributes and categories in parallel
   // For variable products, only sync attribute options that have a real variation
