@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Shipping and Delivery",
-  description: "Free US shipping on all orders. USPS Priority Mail delivery within 2-3 business days.",
+  description: "Free standard US shipping on all orders. Express shipping available. Shipped from our East Coast warehouse.",
 };
 
 export default function ShippingPage() {
@@ -15,14 +15,24 @@ export default function ShippingPage() {
       <div className="prose-sm space-y-8 text-sm leading-relaxed text-foreground/80">
         <section>
           <h2 className="text-base font-medium text-foreground mb-3">
-            US Standard Delivery: 2-3 business days via USPS Priority Mail
+            Standard Shipping: 3–5 business days
           </h2>
           <ul className="list-disc pl-5 space-y-2">
-            <li>Free shipping on all orders</li>
-            <li>
-              Tracking numbers will be provided via email
-            </li>
-            <li>Please note, delivery may take longer for remote locations</li>
+            <li>Free on all orders</li>
+            <li>Shipped from our East Coast warehouse</li>
+            <li>Tracking numbers provided via email</li>
+            <li>Delivery may take longer for remote locations</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="text-base font-medium text-foreground mb-3">
+            Express Shipping: 1–3 business days — $5.99
+          </h2>
+          <ul className="list-disc pl-5 space-y-2">
+            <li>Available at checkout</li>
+            <li>Shipped from our East Coast warehouse</li>
+            <li>Tracking numbers provided via email</li>
           </ul>
         </section>
 
@@ -50,9 +60,9 @@ export default function ShippingPage() {
           <h2 className="text-base font-medium text-foreground mb-3">Please Note</h2>
           <p>
             We are not responsible for delays that are out of our hands or wrongly inputted
-            addresses. Our shipping times are for major locations within the US.
-            All other locations may have a slightly longer shipping time depending on the location.
-            We ship from our US warehouse.
+            addresses. Shipping times are estimates for major locations within the contiguous US.
+            Other locations may have slightly longer shipping times.
+            All orders are shipped from our East Coast warehouse.
           </p>
         </section>
       </div>

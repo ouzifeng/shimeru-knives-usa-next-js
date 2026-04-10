@@ -30,12 +30,24 @@ export default function ContactPage() {
 
       <div className="mt-12 pt-8 border-t border-border">
         <h2 className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-3">
-          Our Address
+          Our Addresses
         </h2>
-        <p className="text-sm text-foreground/80">
-          1000 N West St, Suite 1200<br />
-          Wilmington, DE 19801
-        </p>
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">US Office</p>
+            <p className="text-sm text-foreground/80">
+              1000 N West St, Suite 1200<br />
+              Wilmington, DE 19801
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">UK Office</p>
+            <p className="text-sm text-foreground/80">
+              Kemp House, 152–160 City Road<br />
+              London, EC1V 2NX
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
