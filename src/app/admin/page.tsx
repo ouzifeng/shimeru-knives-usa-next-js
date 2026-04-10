@@ -1225,36 +1225,6 @@ function ProductsTab() {
             <p className="text-sm text-muted-foreground">
               {rows.length} products
             </p>
-            <button
-              onClick={async () => {
-                const updated = rows.map((r) => {
-                  const isSet = r.name.toLowerCase().includes("set");
-                  const shippingVal = isSet ? 13.74 : 11.11;
-                  return { ...r, shipping: shippingVal };
-                });
-                setRows(updated);
-                setSaving("bulk");
-                await Promise.all(
-                  updated.map((r) =>
-                    fetch("/api/admin/products", {
-                      method: "PUT",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        sku: r.sku,
-                        cogs: r.cogs,
-                        import: r.import,
-                        shipping: r.shipping,
-                      }),
-                    })
-                  )
-                );
-                setSaving(null);
-              }}
-              disabled={saving === "bulk"}
-              className="rounded bg-foreground px-3 py-1.5 text-xs font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
-            >
-              {saving === "bulk" ? "Updating..." : "Set All Shipping ($11.11 / $13.74 sets)"}
-            </button>
           </div>
           <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
             <table className="w-full text-sm">
