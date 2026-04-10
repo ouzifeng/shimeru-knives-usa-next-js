@@ -8,7 +8,6 @@ export async function GET() {
   const { data: products, error: pErr } = await sb
     .from("products")
     .select("id, name, sku, type, images, status")
-    .eq("status", "publish")
     .order("name");
 
   if (pErr) {
