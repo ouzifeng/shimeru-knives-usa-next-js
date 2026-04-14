@@ -23,6 +23,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
+  // The UK and US stores share one Stripe account, so every event is delivered
+  // to both webhook endpoints. Only handle events whose checkout was created
+  // from this store's domain.
+  const obj = event.data.object as { success_url?: string; cancel_url?: string };
+  const routingUrl = obj.success_url || obj.cancel_url;
+  if (routingUrl) {
+    try {
+      const host = new URL(routingUrl).hostname;
+      if (!host.endsWith("shimeruknives.com") || host.endsWith("shimeruknives.co.uk")) {
+        return NextResponse.json({ received: true, ignored: "other-store" });
+      }
+    } catch {
+      // Malformed URL — fall through and let the handler decide
+    }
+  }
+
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     const admin = getSupabaseAdmin();
