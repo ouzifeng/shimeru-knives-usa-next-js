@@ -1237,7 +1237,7 @@ function ProductsTab() {
                   <th className="px-4 py-3 font-medium w-[100px]">COGs</th>
                   <th className="px-4 py-3 font-medium w-[100px]">Import</th>
                   <th className="px-4 py-3 font-medium w-[100px]">Shipping</th>
-                  <th className="px-4 py-3 font-medium w-[100px]">Net</th>
+                  <th className="px-4 py-3 font-medium w-[100px]">Gross</th>
                 </tr>
               </thead>
               <tbody>
