@@ -167,9 +167,6 @@ function getDateRange(filter: DateFilter, customFrom?: string, customTo?: string
 
 type CostLookup = Record<number, { cogs: number; import: number; shipping: number }>;
 
-// Per-order fulfillment cost (pick + postage + packaging)
-const FULFILLMENT_PER_ORDER = 5.62;
-
 interface MonthlyFixedCost {
   id: string;
   month: string;
@@ -190,7 +187,7 @@ function calcOrderCost(
       variable += (cost.cogs + cost.import + cost.shipping) * li.qty;
     }
   }
-  return variable + FULFILLMENT_PER_ORDER;
+  return variable;
 }
 
 function getMonthlyFixedTotal(
@@ -1127,10 +1124,6 @@ function FixedCostsSubTab() {
           </tfoot>
         </table>
       </div>
-
-      <p className="text-xs text-muted-foreground">
-        Per-order fulfillment (pick + postage + packaging): {formatPrice(FULFILLMENT_PER_ORDER)} inc VAT — applied automatically per completed order.
-      </p>
     </div>
   );
 }
