@@ -7,7 +7,8 @@ export async function GET() {
   // Get all published products
   const { data: products, error: pErr } = await sb
     .from("products")
-    .select("id, name, sku, type, images, status")
+    .select("id, name, sku, type, images, status, price")
+    .eq("status", "publish")
     .order("name");
 
   if (pErr) {
@@ -19,11 +20,11 @@ export async function GET() {
     .filter((p) => p.type === "variable")
     .map((p) => p.id);
 
-  let variations: Record<number, Array<{ id: number; sku: string; image: { src?: string } | null; attributes: unknown[] }>> = {};
+  let variations: Record<number, Array<{ id: number; sku: string; image: { src?: string } | null; attributes: unknown[]; price: number | null }>> = {};
   if (variableIds.length > 0) {
     const { data: vars, error: vErr } = await sb
       .from("product_variations")
-      .select("id, product_id, sku, image, attributes")
+      .select("id, product_id, sku, image, attributes, price")
       .in("product_id", variableIds);
 
     if (vErr) {
@@ -50,6 +51,7 @@ export async function GET() {
     name: string;
     sku: string;
     image: string | null;
+    price: number | null;
     cogs: number | null;
     import: number | null;
     shipping: number | null;
@@ -68,6 +70,7 @@ export async function GET() {
           name: p.name,
           sku: v.sku || "",
           image: varImage,
+          price: v.price ?? p.price ?? null,
           cogs: cost.cogs ?? null,
           import: cost.import ?? null,
           shipping: cost.shipping ?? null,
@@ -82,6 +85,7 @@ export async function GET() {
         name: p.name,
         sku: p.sku || "",
         image: image,
+        price: p.price ?? null,
         cogs: cost.cogs ?? null,
         import: cost.import ?? null,
         shipping: cost.shipping ?? null,

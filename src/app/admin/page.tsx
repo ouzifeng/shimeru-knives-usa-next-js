@@ -978,6 +978,7 @@ interface ProductRow {
   name: string;
   sku: string;
   image: string | null;
+  price: number | null;
   cogs: number | null;
   import: number | null;
   shipping: number | null;
@@ -1232,9 +1233,11 @@ function ProductsTab() {
                   <th className="px-4 py-3 font-medium w-[50px]">Image</th>
                   <th className="px-4 py-3 font-medium">Name</th>
                   <th className="px-4 py-3 font-medium">SKU</th>
+                  <th className="px-4 py-3 font-medium w-[100px]">Price</th>
                   <th className="px-4 py-3 font-medium w-[100px]">COGs</th>
                   <th className="px-4 py-3 font-medium w-[100px]">Import</th>
                   <th className="px-4 py-3 font-medium w-[100px]">Shipping</th>
+                  <th className="px-4 py-3 font-medium w-[100px]">Net</th>
                 </tr>
               </thead>
               <tbody>
@@ -1259,6 +1262,9 @@ function ProductsTab() {
                     <td className="px-4 py-2 font-medium">{row.name}</td>
                     <td className="px-4 py-2 text-muted-foreground font-mono text-xs">
                       {row.sku}
+                    </td>
+                    <td className="px-4 py-2 tabular-nums">
+                      {row.price != null ? formatPrice(row.price) : "—"}
                     </td>
                     <td className="px-4 py-2">
                       <input
@@ -1291,6 +1297,11 @@ function ProductsTab() {
                         className="w-full rounded border bg-transparent px-2 py-1 text-sm tabular-nums focus:outline-none focus:ring-1 focus:ring-foreground"
                         placeholder="—"
                       />
+                    </td>
+                    <td className="px-4 py-2 tabular-nums">
+                      {row.price != null && row.cogs != null && row.import != null && row.shipping != null
+                        ? formatPrice(row.price - row.cogs - row.import - row.shipping)
+                        : "—"}
                     </td>
                   </tr>
                 ))}
