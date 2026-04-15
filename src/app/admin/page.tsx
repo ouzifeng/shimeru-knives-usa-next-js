@@ -1299,8 +1299,8 @@ function ProductsTab() {
                       />
                     </td>
                     <td className="px-4 py-2 tabular-nums">
-                      {row.price != null && row.cogs != null && row.import != null && row.shipping != null
-                        ? formatPrice(row.price - row.cogs - row.import - row.shipping)
+                      {row.price != null && row.price > 0 && row.cogs != null && row.import != null && row.shipping != null
+                        ? `${formatPrice(row.price - row.cogs - row.import - row.shipping)} (${(((row.price - row.cogs - row.import - row.shipping) / row.price) * 100).toFixed(1)}%)`
                         : "—"}
                     </td>
                   </tr>
