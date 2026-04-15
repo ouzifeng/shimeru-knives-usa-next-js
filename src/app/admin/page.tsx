@@ -301,10 +301,9 @@ function OrdersTab() {
   // Pro-rated monthly fixed costs for the selected date range
   const proRatedFixed = getProRatedFixedCosts(fixedCosts, from, to);
   const totalStripeFees = completedOrders.reduce((sum, o) => sum + Number(o.stripe_fee || 0), 0);
-  const totalCost = totalVariableCost + proRatedFixed;
-  const grossProfit = totalRevenue - totalCost - totalStripeFees;
+  const grossProfit = totalRevenue - totalVariableCost;
   const grossMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
-  const netProfit = grossProfit - adSpend;
+  const netProfit = grossProfit - proRatedFixed - totalStripeFees - adSpend;
   const roas = adSpend > 0 ? totalRevenue / adSpend : 0;
 
   if (loading) {
