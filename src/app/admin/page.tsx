@@ -447,6 +447,15 @@ function OrdersTab() {
         </div>
         <div className="rounded-xl border bg-card p-5 shadow-sm">
           <div className="flex items-center gap-1.5 text-muted-foreground">
+            <CreditCard className="size-3.5" />
+            <span className="text-xs font-medium">Payment Fees</span>
+          </div>
+          <p className="mt-1.5 text-2xl font-semibold tracking-tight">
+            {formatPrice(totalStripeFees)}
+          </p>
+        </div>
+        <div className="rounded-xl border bg-card p-5 shadow-sm">
+          <div className="flex items-center gap-1.5 text-muted-foreground">
             <BarChart3 className="size-3.5" />
             <span className="text-xs font-medium">ROAS</span>
           </div>
