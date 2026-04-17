@@ -232,12 +232,17 @@ function fmtDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function countryCodeToFlag(cc: string): string {
-  return cc
-    .toUpperCase()
-    .split("")
-    .map((c) => String.fromCodePoint(0x1f1e6 + c.charCodeAt(0) - 65))
-    .join("");
+function CountryFlag({ cc }: { cc: string }) {
+  return (
+    <img
+      src={`https://flagcdn.com/20x15/${cc.toLowerCase()}.png`}
+      alt={cc}
+      title={cc}
+      width={20}
+      height={15}
+      className="inline-block"
+    />
+  );
 }
 
 function useIpCountries(ips: string[]) {
@@ -594,9 +599,7 @@ function OrdersTab() {
                       {order.customer_ip ? (
                         <span className="inline-flex items-center gap-1.5">
                           {ipCountryMap[order.customer_ip] && (
-                            <span className="text-base" title={ipCountryMap[order.customer_ip]}>
-                              {countryCodeToFlag(ipCountryMap[order.customer_ip])}
-                            </span>
+                            <CountryFlag cc={ipCountryMap[order.customer_ip]} />
                           )}
                           {order.customer_ip}
                         </span>
