@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import type { SyncState, WCShippingMethod, WCShippingZone } from "@/lib/types";
@@ -232,6 +232,42 @@ function fmtDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function countryCodeToFlag(cc: string): string {
+  return cc
+    .toUpperCase()
+    .split("")
+    .map((c) => String.fromCodePoint(0x1f1e6 + c.charCodeAt(0) - 65))
+    .join("");
+}
+
+function useIpCountries(ips: string[]) {
+  const [map, setMap] = useState<Record<string, string>>({});
+  const resolvedRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const newIps = ips.filter((ip) => ip && !resolvedRef.current.has(ip));
+    if (newIps.length === 0) return;
+    newIps.forEach((ip) => resolvedRef.current.add(ip));
+
+    const batch = [...new Set(newIps)].slice(0, 100);
+    fetch("http://ip-api.com/batch?fields=query,countryCode", {
+      method: "POST",
+      body: JSON.stringify(batch.map((ip) => ({ query: ip }))),
+    })
+      .then((r) => r.json())
+      .then((results: Array<{ query: string; countryCode?: string }>) => {
+        const next: Record<string, string> = {};
+        for (const r of results) {
+          if (r.countryCode) next[r.query] = r.countryCode;
+        }
+        setMap((prev) => ({ ...prev, ...next }));
+      })
+      .catch(() => {});
+  }, [ips.join(",")]);
+
+  return map;
+}
+
 function OrdersTab() {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [costByProductId, setCostByProductId] = useState<CostLookup>({});
@@ -245,6 +281,7 @@ function OrdersTab() {
   const [adSpend, setAdSpend] = useState<number>(0);
   const [adClicks, setAdClicks] = useState<number>(0);
   const [adLoading, setAdLoading] = useState(false);
+  const ipCountryMap = useIpCountries(allOrders.map((o) => o.customer_ip).filter(Boolean) as string[]);
 
   useEffect(() => {
     Promise.all([
@@ -557,7 +594,16 @@ function OrdersTab() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground font-mono">
-                      {order.customer_ip || "—"}
+                      {order.customer_ip ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          {ipCountryMap[order.customer_ip] && (
+                            <span className="text-base" title={ipCountryMap[order.customer_ip]}>
+                              {countryCodeToFlag(ipCountryMap[order.customer_ip])}
+                            </span>
+                          )}
+                          {order.customer_ip}
+                        </span>
+                      ) : "—"}
                     </td>
                     <td className="px-4 py-3">
                       {(() => {
