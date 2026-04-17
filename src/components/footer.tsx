@@ -33,6 +33,7 @@ export function Footer() {
           <div>
             <h4 className="text-[13px] tracking-[0.25em] uppercase text-background/50 mb-5">Help</h4>
             <ul className="space-y-3 text-base">
+              <li><Link href="/about" className="hover:text-background transition-colors">About Us</Link></li>
               <li><Link href="/contact" className="hover:text-background transition-colors">Contact Us</Link></li>
               <li><Link href="/shipping-and-delivery" className="hover:text-background transition-colors">Shipping &amp; Delivery</Link></li>
               <li><Link href="/refund_returns" className="hover:text-background transition-colors">Returns &amp; Refunds</Link></li>

@@ -30,6 +30,24 @@ export default function ContactPage() {
 
       <div className="mt-12 pt-8 border-t border-border">
         <h2 className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-3">
+          Get In Touch
+        </h2>
+        <div className="space-y-2 mb-8">
+          <p className="text-sm text-foreground/80">
+            <span className="font-medium">Email:</span>{" "}
+            <a href="mailto:sales@shimeruknives.com" className="underline underline-offset-2 hover:text-foreground">
+              sales@shimeruknives.com
+            </a>
+          </p>
+          <p className="text-sm text-foreground/80">
+            <span className="font-medium">Phone:</span>{" "}
+            <a href="tel:+447494512699" className="underline underline-offset-2 hover:text-foreground">
+              +44 7494 512699
+            </a>
+          </p>
+        </div>
+
+        <h2 className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-3">
           Our Addresses
         </h2>
         <div className="space-y-4">
