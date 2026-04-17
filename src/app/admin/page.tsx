@@ -250,17 +250,14 @@ function useIpCountries(ips: string[]) {
     newIps.forEach((ip) => resolvedRef.current.add(ip));
 
     const batch = [...new Set(newIps)].slice(0, 100);
-    fetch("http://ip-api.com/batch?fields=query,countryCode", {
+    fetch("/api/admin/ip-geo", {
       method: "POST",
-      body: JSON.stringify(batch.map((ip) => ({ query: ip }))),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ips: batch }),
     })
       .then((r) => r.json())
-      .then((results: Array<{ query: string; countryCode?: string }>) => {
-        const next: Record<string, string> = {};
-        for (const r of results) {
-          if (r.countryCode) next[r.query] = r.countryCode;
-        }
-        setMap((prev) => ({ ...prev, ...next }));
+      .then((result: Record<string, string>) => {
+        setMap((prev) => ({ ...prev, ...result }));
       })
       .catch(() => {});
   }, [ips.join(",")]);
