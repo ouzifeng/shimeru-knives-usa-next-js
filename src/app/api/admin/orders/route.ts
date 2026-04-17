@@ -4,11 +4,12 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 export async function GET() {
   const sb = getSupabaseAdmin();
 
-  const [ordersRes, costsRes, productsRes, variationsRes] = await Promise.all([
+  const [ordersRes, costsRes, productsRes, variationsRes, funnelRes] = await Promise.all([
     sb.from("orders").select("*").order("created_at", { ascending: false }),
     sb.from("product_costs").select("*"),
     sb.from("products").select("id, sku").eq("status", "publish"),
     sb.from("product_variations").select("id, product_id, sku"),
+    sb.from("funnel_events").select("session_id, event, created_at").order("created_at", { ascending: true }),
   ]);
 
   if (ordersRes.error) {
@@ -41,9 +42,16 @@ export async function GET() {
     }
   }
 
+  const funnelBySession: Record<string, string[]> = {};
+  for (const fe of funnelRes.data || []) {
+    if (!funnelBySession[fe.session_id]) funnelBySession[fe.session_id] = [];
+    funnelBySession[fe.session_id].push(fe.event);
+  }
+
   return NextResponse.json({
     orders: ordersRes.data,
     costByProductId,
     costByVariationId,
+    funnelBySession,
   });
 }

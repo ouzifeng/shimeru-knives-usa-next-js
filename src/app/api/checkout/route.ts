@@ -26,10 +26,11 @@ interface WCCoupon {
 
 export async function POST(req: NextRequest) {
   try {
-    const { items, couponCode, attribution } = (await req.json()) as {
+    const { items, couponCode, attribution, funnelSessionId } = (await req.json()) as {
       items: CartItem[];
       couponCode?: string;
       attribution?: Record<string, string>;
+      funnelSessionId?: string;
     };
 
     if (!items?.length) {
@@ -183,6 +184,7 @@ export async function POST(req: NextRequest) {
         customer_ip: customerIp,
         ...(wcCouponCode && { wc_coupon_code: wcCouponCode }),
         ...(attribution && { attribution: JSON.stringify(attribution) }),
+        ...(funnelSessionId && { funnel_session_id: funnelSessionId }),
       },
     };
 

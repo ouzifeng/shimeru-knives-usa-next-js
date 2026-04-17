@@ -120,6 +120,7 @@ interface Order {
   customer_ip: string | null;
   abandon_reason: string | null;
   stripe_fee: number | null;
+  funnel_session_id: string | null;
   created_at: string;
 }
 
@@ -274,6 +275,7 @@ function OrdersTab() {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [costByProductId, setCostByProductId] = useState<CostLookup>({});
   const [costByVariationId, setCostByVariationId] = useState<CostLookup>({});
+  const [funnelBySession, setFunnelBySession] = useState<Record<string, string[]>>({});
   const [fixedCosts, setFixedCosts] = useState<MonthlyFixedCost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -294,6 +296,7 @@ function OrdersTab() {
         setAllOrders(orderData.orders);
         setCostByProductId(orderData.costByProductId);
         setCostByVariationId(orderData.costByVariationId);
+        setFunnelBySession(orderData.funnelBySession || {});
         setFixedCosts(fixedData.costs || []);
       })
       .catch((err) => {
@@ -540,6 +543,7 @@ function OrdersTab() {
                   <th className="px-4 py-3">Source</th>
                   <th className="px-4 py-3">IP</th>
                   <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Drop-off</th>
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3">Links</th>
                 </tr>
@@ -630,6 +634,23 @@ function OrdersTab() {
                           </div>
                         );
                       })()}
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      {order.status === "abandoned" ? (() => {
+                        const stages = order.funnel_session_id
+                          ? funnelBySession[order.funnel_session_id] || []
+                          : [];
+                        const last = stages[stages.length - 1];
+                        const label = last === "payment_started" ? "At payment"
+                          : last === "checkout_viewed" ? "At checkout"
+                          : last === "add_to_cart" ? "Cart only"
+                          : "Unknown";
+                        const color = last === "payment_started" ? "text-amber-600"
+                          : last === "checkout_viewed" ? "text-orange-600"
+                          : last === "add_to_cart" ? "text-rose-600"
+                          : "text-muted-foreground";
+                        return <span className={color}>{label}</span>;
+                      })() : <span className="text-muted-foreground">—</span>}
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                       {new Date(order.created_at).toLocaleDateString("en-US", {

@@ -258,6 +258,7 @@ export async function POST(req: Request) {
         attribution: attribution || null,
         customer_ip: session.metadata?.customer_ip || null,
         stripe_fee: stripeFee,
+        funnel_session_id: session.metadata?.funnel_session_id || null,
         created_at: new Date().toISOString(),
       };
 
@@ -432,6 +433,7 @@ export async function POST(req: Request) {
         attribution: attribution || null,
         customer_ip: session.metadata?.customer_ip || null,
         abandon_reason: abandonReason,
+        funnel_session_id: session.metadata?.funnel_session_id || null,
         created_at: new Date().toISOString(),
       });
     } catch (err) {

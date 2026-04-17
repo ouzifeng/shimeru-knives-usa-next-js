@@ -7,7 +7,7 @@ import { useCartStore } from "@/lib/cart-store";
 import { formatPrice } from "@/lib/format";
 import { Loader2, ShoppingBag, ArrowLeft, Tag, X, Truck, Check } from "lucide-react";
 import type { ShippingOption } from "@/lib/shipping";
-import { trackFunnelEvent } from "@/lib/funnel";
+import { trackFunnelEvent, getFunnelSessionId } from "@/lib/funnel";
 import { trackMetaInitiateCheckout } from "@/components/meta-pixel";
 import { trackTikTokInitiateCheckout } from "@/components/tiktok-pixel";
 import { getAttribution, refreshGaClientId } from "@/lib/attribution";
@@ -100,6 +100,7 @@ export default function CheckoutPage() {
           })),
           couponCode: appliedCoupon?.code,
           attribution: getAttribution(),
+          funnelSessionId: getFunnelSessionId(),
         }),
       });
       const data = await res.json();

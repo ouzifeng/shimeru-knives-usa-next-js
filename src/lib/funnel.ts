@@ -17,6 +17,10 @@ interface FunnelData {
   metadata?: Record<string, unknown>;
 }
 
+export function getFunnelSessionId(): string {
+  return getSessionId();
+}
+
 export function trackFunnelEvent(event: string, data?: FunnelData): void {
   try {
     const payload = JSON.stringify({
