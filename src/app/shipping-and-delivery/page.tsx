@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Shipping and Delivery",
-  description: "Free standard US shipping on all orders. Express shipping available. Shipped from our East Coast warehouse.",
+  description: "Free standard US shipping on all orders. Express shipping available. Shipped from our US warehouse.",
 };
 
 export default function ShippingPage() {
@@ -19,7 +19,7 @@ export default function ShippingPage() {
           </h2>
           <ul className="list-disc pl-5 space-y-2">
             <li>Free on all orders</li>
-            <li>Shipped from our East Coast warehouse</li>
+            <li>Shipped from our US warehouse</li>
             <li>Tracking numbers provided via email</li>
             <li>Delivery may take longer for remote locations</li>
           </ul>
@@ -31,7 +31,7 @@ export default function ShippingPage() {
           </h2>
           <ul className="list-disc pl-5 space-y-2">
             <li>Available at checkout</li>
-            <li>Shipped from our East Coast warehouse</li>
+            <li>Shipped from our US warehouse</li>
             <li>Tracking numbers provided via email</li>
           </ul>
         </section>
@@ -62,7 +62,7 @@ export default function ShippingPage() {
             We are not responsible for delays that are out of our hands or wrongly inputted
             addresses. Shipping times are estimates for major locations within the contiguous US.
             Other locations may have slightly longer shipping times.
-            All orders are shipped from our East Coast warehouse.
+            All orders are shipped from our US warehouse.
           </p>
         </section>
       </div>
