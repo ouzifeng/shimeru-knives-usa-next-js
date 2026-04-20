@@ -29,9 +29,9 @@ export default function AboutPage() {
         </p>
 
         <p>
-          We are a registered business based in the United Kingdom with a US office in Wilmington,
-          Delaware. All orders are fulfilled from our warehouses with tracked shipping, and our
-          customer service team responds to every enquiry within 24 hours.
+          We are a registered business based in the United Kingdom. All orders are fulfilled from
+          our warehouse with tracked shipping, and our customer service team responds to every
+          enquiry within 24 hours.
         </p>
 
         <h2 className="font-serif text-xl font-light tracking-tight pt-4">Our Promise</h2>
@@ -64,21 +64,14 @@ export default function AboutPage() {
           </li>
         </ul>
 
-        <h2 className="font-serif text-xl font-light tracking-tight pt-4">Our Addresses</h2>
+        <h2 className="font-serif text-xl font-light tracking-tight pt-4">Our Address</h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
           <div>
-            <p className="font-medium text-foreground mb-1">US Office</p>
             <p>
-              1000 N West St, Suite 1200<br />
-              Wilmington, DE 19801
-            </p>
-          </div>
-          <div>
-            <p className="font-medium text-foreground mb-1">UK Office</p>
-            <p>
-              Kemp House, 152-160 City Road<br />
-              London, EC1V 2NX
+              Kemp House, 152–160 City Road<br />
+              London, EC1V 2NX<br />
+              United Kingdom
             </p>
           </div>
         </div>
