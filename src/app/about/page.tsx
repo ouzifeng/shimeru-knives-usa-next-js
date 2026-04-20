@@ -52,8 +52,8 @@ export default function AboutPage() {
         <ul className="list-none pl-0 space-y-1">
           <li>
             <span className="font-medium">Email:</span>{" "}
-            <a href="mailto:sales@shimeruknives.com" className="underline underline-offset-2">
-              sales@shimeruknives.com
+            <a href="mailto:sales@shimeruknives.us" className="underline underline-offset-2">
+              sales@shimeruknives.us
             </a>
           </li>
           <li>

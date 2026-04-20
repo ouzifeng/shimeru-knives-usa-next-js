@@ -35,8 +35,8 @@ export default function ContactPage() {
         <div className="space-y-2 mb-8">
           <p className="text-sm text-foreground/80">
             <span className="font-medium">Email:</span>{" "}
-            <a href="mailto:sales@shimeruknives.com" className="underline underline-offset-2 hover:text-foreground">
-              sales@shimeruknives.com
+            <a href="mailto:sales@shimeruknives.us" className="underline underline-offset-2 hover:text-foreground">
+              sales@shimeruknives.us
             </a>
           </p>
           <p className="text-sm text-foreground/80">

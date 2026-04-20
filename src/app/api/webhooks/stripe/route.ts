@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   if (routingUrl) {
     try {
       const host = new URL(routingUrl).hostname;
-      if (!host.endsWith("shimeruknives.com") || host.endsWith("shimeruknives.co.uk")) {
+      if (!host.endsWith("shimeruknives.us")) {
         return NextResponse.json({ received: true, ignored: "other-store" });
       }
     } catch {
