@@ -222,7 +222,7 @@ export async function GET(req: NextRequest) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      sender: { name: "Shimeru Knives", email: "shop@shimeruknives.us" },
+      sender: { name: "Shimeru Knives", email: "sales@shimeruknives.us" },
       to: [{ email: "mr.davidoak@gmail.com", name: "David" }],
       subject: `Reorder Alert — ${totalUnits} units sold`,
       htmlContent: html,
