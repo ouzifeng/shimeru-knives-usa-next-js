@@ -184,9 +184,9 @@ function StockHealthTable({ skus }: { skus: SkuRow[] }) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border">
+      <div className="overflow-auto rounded-lg border max-h-[70vh]">
         <table className="w-full text-sm">
-          <thead className="border-b bg-muted/40">
+          <thead className="border-b bg-muted/40 sticky top-0 z-10">
             <tr>
               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">SKU</th>
               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Product</th>
