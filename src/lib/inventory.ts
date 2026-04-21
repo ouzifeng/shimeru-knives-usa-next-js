@@ -315,7 +315,7 @@ function deriveStatus(
   velocity: number,
   firstSaleDate: string | null
 ): { status: StockStatus; daysRemaining: number | null } {
-  if (stockQty <= 0 && incomingQty <= 0) {
+  if (stockQty <= 0) {
     return { status: "out_of_stock", daysRemaining: 0 };
   }
 
