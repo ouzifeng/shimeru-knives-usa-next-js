@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import type { SyncState, WCShippingMethod, WCShippingZone } from "@/lib/types";
 import { formatPrice } from "@/lib/format";
 import { Input } from "@/components/ui/input";
+import { InventoryTab } from "@/components/admin/inventory-tab";
 import {
   Globe,
   CreditCard,
@@ -1386,7 +1387,7 @@ function ProductsTab() {
 }
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "orders" | "products" | "funnel" | "returns">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "orders" | "products" | "inventory" | "funnel" | "returns">("dashboard");
   const [syncState, setSyncState] = useState<SyncState | null>(null);
   const [productCount, setProductCount] = useState<number>(0);
   const [syncing, setSyncing] = useState(false);
@@ -1832,6 +1833,19 @@ export default function AdminPage() {
             )}
           </button>
           <button
+            onClick={() => setActiveTab("inventory")}
+            className={`px-4 py-2 text-sm font-medium transition-colors relative ${
+              activeTab === "inventory"
+                ? "text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Inventory
+            {activeTab === "inventory" && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />
+            )}
+          </button>
+          <button
             onClick={() => setActiveTab("funnel")}
             className={`px-4 py-2 text-sm font-medium transition-colors relative ${
               activeTab === "funnel"
@@ -1862,6 +1876,7 @@ export default function AdminPage() {
 
       {activeTab === "orders" && <OrdersTab />}
       {activeTab === "products" && <ProductsTab />}
+      {activeTab === "inventory" && <InventoryTab />}
       {activeTab === "funnel" && <FunnelTab />}
       {activeTab === "returns" && <ReturnsTab />}
 
