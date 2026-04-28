@@ -107,6 +107,7 @@ export async function queryProducts(filters: ProductFilter = {}): Promise<{
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   const decoded = decodeURIComponent(slug);
+  let product: Product | null = null;
 
   // Try decoded slug first (works for ASCII-only slugs)
   const { data, error } = await supabase
@@ -115,35 +116,67 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
     .eq("slug", decoded)
     .single();
 
-  if (!error && data) return data as Product;
+  if (!error && data) product = data as Product;
 
   // Try raw slug as-is
-  if (slug !== decoded) {
+  if (!product && slug !== decoded) {
     const { data: data2, error: error2 } = await supabase
       .from("products")
       .select("*")
       .eq("slug", slug)
       .single();
 
-    if (!error2 && data2) return data2 as Product;
+    if (!error2 && data2) product = data2 as Product;
   }
 
   // WordPress stores slugs with lowercase percent-encoded Unicode.
   // Next.js auto-decodes params, so re-encode and lowercase to match DB.
-  const wpSlug = encodeURIComponent(decoded)
-    .replace(/%[0-9A-F]{2}/g, (m) => m.toLowerCase())
-    .replace(/%e2%80%b3/g, "%e2%80%b3"); // ″ already handled
-  if (wpSlug !== decoded && wpSlug !== slug) {
-    const { data: data3, error: error3 } = await supabase
-      .from("products")
-      .select("*")
-      .eq("slug", wpSlug)
-      .single();
+  if (!product) {
+    const wpSlug = encodeURIComponent(decoded)
+      .replace(/%[0-9A-F]{2}/g, (m) => m.toLowerCase())
+      .replace(/%e2%80%b3/g, "%e2%80%b3"); // ″ already handled
+    if (wpSlug !== decoded && wpSlug !== slug) {
+      const { data: data3, error: error3 } = await supabase
+        .from("products")
+        .select("*")
+        .eq("slug", wpSlug)
+        .single();
 
-    if (!error3 && data3) return data3 as Product;
+      if (!error3 && data3) product = data3 as Product;
+    }
   }
 
-  return null;
+  if (!product) return null;
+
+  // Variable products don't track stock at the parent level — Woo holds
+  // stock_quantity/stock_status on each variation. Roll the variations up
+  // so the storefront shows accurate availability for variable products.
+  if (product.type === "variable") {
+    const { data: variations } = await supabase
+      .from("product_variations")
+      .select("stock_status,stock_quantity")
+      .eq("product_id", product.id);
+
+    if (variations?.length) {
+      let totalQty: number | null = null;
+      let hasInstock = false;
+      let hasBackorder = false;
+      for (const v of variations) {
+        if (v.stock_status === "instock") hasInstock = true;
+        if (v.stock_status === "onbackorder") hasBackorder = true;
+        if (v.stock_quantity !== null && v.stock_quantity !== undefined) {
+          totalQty = (totalQty ?? 0) + v.stock_quantity;
+        }
+      }
+      product = {
+        ...product,
+        stock_quantity: totalQty,
+        stock_status: hasInstock ? "instock" : hasBackorder ? "onbackorder" : "outofstock",
+      };
+    }
+  }
+
+  return product;
 }
 
 // Tag slugs that represent blade lengths and steel types
