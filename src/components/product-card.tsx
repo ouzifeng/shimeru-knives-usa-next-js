@@ -3,6 +3,7 @@ import Image from "next/image";
 import type { Product } from "@/lib/types";
 import { formatPrice } from "@/lib/format";
 import { StarRating } from "./star-rating";
+import { storeConfig } from "../../store.config";
 
 export function ProductCard({ product }: { product: Product }) {
   return (
@@ -33,7 +34,7 @@ export function ProductCard({ product }: { product: Product }) {
         <h3 className="font-serif text-base sm:text-lg font-medium group-hover:text-primary transition-colors leading-snug">
           {product.name}
         </h3>
-        {product.rating_count > 0 && product.average_rating && (
+        {storeConfig.showReviews && product.rating_count > 0 && product.average_rating && (
           <div className="flex items-center gap-1.5">
             <StarRating rating={product.average_rating} />
             <span className="text-xs text-muted-foreground">({product.rating_count} {product.rating_count === 1 ? "review" : "reviews"})</span>

@@ -144,7 +144,7 @@ function ProductJsonLd({ product, seo }: { product: Product; seo: any }) {
     ];
   }
 
-  if (product.rating_count > 0 && product.average_rating) {
+  if (storeConfig.showReviews && product.rating_count > 0 && product.average_rating) {
     schema.aggregateRating = {
       "@type": "AggregateRating",
       ratingValue: product.average_rating,
@@ -261,7 +261,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             <div className="space-y-2.5">
               <h1 className="font-serif text-3xl sm:text-4xl lg:text-[2.75rem] font-light leading-tight">{product.name}</h1>
 
-              {product.rating_count > 0 && product.average_rating && (
+              {storeConfig.showReviews && product.rating_count > 0 && product.average_rating && (
                 <div className="flex items-center gap-2">
                   <StarRating rating={product.average_rating} size="lg" />
                   <span className="text-base text-muted-foreground">
@@ -399,15 +399,17 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
         {/* Reviews — full width, streamed via Suspense */}
         <div className="mt-12 lg:mt-16 grid md:grid-cols-2 gap-12 lg:gap-16">
-          <div>
-            <Suspense fallback={<ReviewsSkeleton />}>
-              <ProductReviewsLoader
-                productId={product.id}
-                averageRating={product.average_rating || 0}
-                ratingCount={product.rating_count || 0}
-              />
-            </Suspense>
-          </div>
+          {storeConfig.showReviews && (
+            <div>
+              <Suspense fallback={<ReviewsSkeleton />}>
+                <ProductReviewsLoader
+                  productId={product.id}
+                  averageRating={product.average_rating || 0}
+                  ratingCount={product.rating_count || 0}
+                />
+              </Suspense>
+            </div>
+          )}
 
           {/* FAQ */}
           <div>

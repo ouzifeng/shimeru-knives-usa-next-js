@@ -29,6 +29,7 @@ export const storeConfig = {
   // Product Display
   // --------------------------------------------------------------------------
   hideOutOfStock: process.env.NEXT_PUBLIC_HIDE_OUT_OF_STOCK === "true",
+  showReviews: process.env.NEXT_PUBLIC_SHOW_REVIEWS !== "false",
 
   // --------------------------------------------------------------------------
   // Site URL (required for canonical URLs, sitemaps, JSON-LD)
