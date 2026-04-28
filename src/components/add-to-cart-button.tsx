@@ -9,6 +9,7 @@ import { trackMetaAddToCart } from "@/components/meta-pixel";
 import { trackTikTokAddToCart } from "@/components/tiktok-pixel";
 import type { Product, ProductVariation, WCAttribute } from "@/lib/types";
 import { EcommanderBadge } from "./ecommander-badge";
+import { storeConfig } from "../../store.config";
 
 interface Props {
   product: Product;
@@ -180,7 +181,7 @@ export function AddToCartButton({ product, attributes }: Props) {
       )}
 
       {/* Store reviews trust signal */}
-      <EcommanderBadge variant="light" />
+      {storeConfig.showReviews && <EcommanderBadge variant="light" />}
 
       {/* Quantity + Add to Cart */}
       <div className="flex gap-3">

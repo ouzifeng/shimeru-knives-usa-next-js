@@ -52,9 +52,11 @@ export function Footer() {
         </div>
 
         {/* Store reviews */}
-        <div className="border-t border-background/10 mt-14 pt-8 flex justify-center">
-          <EcommanderBadge />
-        </div>
+        {storeConfig.showReviews && (
+          <div className="border-t border-background/10 mt-14 pt-8 flex justify-center">
+            <EcommanderBadge />
+          </div>
+        )}
 
         <div className="mt-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs text-background/30">
