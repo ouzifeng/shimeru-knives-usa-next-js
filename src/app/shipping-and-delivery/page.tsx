@@ -50,9 +50,10 @@ export default function ShippingPage() {
         <section>
           <h2 className="text-base font-medium text-foreground mb-3">Processing Times</h2>
           <p>
-            We aim to ship our orders in the fastest time possible. All orders are shipped during
-            working hours Mon–Fri (not including federal holidays). Please allow longer shipping times
-            during extremely busy periods, e.g. Christmas.
+            We aim to ship our orders in the fastest time possible. Orders placed before 1pm CT on a
+            business day are dispatched the same day. All orders are shipped during working hours
+            Mon–Fri (not including federal holidays). Please allow longer shipping times during
+            extremely busy periods, e.g. Christmas.
           </p>
         </section>
 
