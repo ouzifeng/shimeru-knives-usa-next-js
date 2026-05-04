@@ -11,7 +11,7 @@ export default function TermsPage() {
       <h1 className="font-serif text-3xl sm:text-4xl font-light tracking-tight mb-2">
         Terms and Conditions
       </h1>
-      <p className="text-sm text-muted-foreground mb-10">Last Update: 01/01/2024</p>
+      <p className="text-sm text-muted-foreground mb-10">Last Update: 01/01/2026</p>
 
       <div className="prose-sm space-y-8 text-sm leading-relaxed text-foreground/80">
         <p>
@@ -41,7 +41,7 @@ export default function TermsPage() {
             </li>
             <li>
               <strong>Payment Methods:</strong> We accept payments via major credit cards, Klarna,
-              and Clearpay. All payment processing is handled securely through Stripe.
+              and Afterpay. All payment processing is handled securely through Stripe.
             </li>
             <li>
               <strong>Taxes and Fees:</strong> Sales tax may apply depending on your state.
@@ -80,7 +80,7 @@ export default function TermsPage() {
           <h2 className="text-base font-medium text-foreground mb-3">4. Returns and Refunds</h2>
           <ul className="list-disc pl-5 space-y-2">
             <li>
-              <strong>Return Window:</strong> You may return unused and undamaged products within 14
+              <strong>Return Window:</strong> You may return unused and undamaged products within 60
               days of delivery for a refund.
             </li>
             <li>

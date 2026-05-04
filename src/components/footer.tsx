@@ -58,7 +58,31 @@ export function Footer() {
           </div>
         )}
 
-        <div className="mt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+        {/* Company disclosure */}
+        <div className="border-t border-background/10 mt-14 pt-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs leading-relaxed text-background/45">
+            <div>
+              <p className="text-[11px] tracking-[0.25em] uppercase text-background/55 mb-2">
+                Company
+              </p>
+              <p>
+                {storeConfig.name} is a UK-registered business.<br />
+                Kemp House, 152&ndash;160 City Road, London EC1V 2NX, United Kingdom
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] tracking-[0.25em] uppercase text-background/55 mb-2">
+                US Fulfillment
+              </p>
+              <p>
+                US orders are picked, packed and shipped from our fulfillment partner in Illinois.<br />
+                Free USPS Ground Advantage shipping, dispatched within 24 hours.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-background/10 mt-8 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs text-background/30">
             &copy; {new Date().getFullYear()} {storeConfig.name}. All rights reserved.
           </p>

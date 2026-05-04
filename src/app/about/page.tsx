@@ -58,8 +58,8 @@ export default function AboutPage() {
           </li>
           <li>
             <span className="font-medium">Phone:</span>{" "}
-            <a href="tel:+447494512699" className="underline underline-offset-2">
-              +44 7494 512699
+            <a href="tel:+13343098138" className="underline underline-offset-2">
+              +1 (334) 309-8138
             </a>
           </li>
         </ul>

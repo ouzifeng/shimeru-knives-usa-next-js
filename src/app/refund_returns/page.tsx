@@ -24,12 +24,10 @@ interface OrderData {
 
 type Step = "lookup" | "select" | "policy" | "confirm";
 
-const RETURN_ADDRESS = `Kays Logistics C/O Shimeru Knives
-1 Windward Drive
-Estuary Commerce Park
-Speke
-Liverpool
-L24 8QR`;
+const RETURN_ADDRESS = `InSync Fulfillment C/O Shimeru Knives
+1115 Hosler Dr
+Bolingbrook, IL 60490
+United States`;
 
 export default function ReturnsPage() {
   const [step, setStep] = useState<Step>("lookup");

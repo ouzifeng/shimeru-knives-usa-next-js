@@ -94,7 +94,6 @@ export function Header() {
               { href: "/product?category=knife-sets", label: "Knife Sets" },
               { href: "/product?on_sale=true", label: "Sale" },
               { href: "/knife-guide", label: "Knife Guide" },
-              { href: "/blog", label: "Blog" },
             ].map((link) => (
               <Link
                 key={link.href}

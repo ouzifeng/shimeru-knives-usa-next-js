@@ -3,12 +3,10 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 
 const RETURN_WINDOW_DAYS = 60;
 
-const RETURN_ADDRESS = `Kays Logistics C/O Shimeru Knives
-1 Windward Drive
-Estuary Commerce Park
-Speke
-Liverpool
-L24 8QR`;
+const RETURN_ADDRESS = `InSync Fulfillment C/O Shimeru Knives
+1115 Hosler Dr
+Bolingbrook, IL 60490
+United States`;
 
 export async function POST(req: NextRequest) {
   const { orderId, email, items, reason } = await req.json();

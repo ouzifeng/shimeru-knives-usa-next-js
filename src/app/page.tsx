@@ -115,8 +115,8 @@ export default async function HomePage() {
             {[
               { stat: "60+", label: "HRC Japanese Steel" },
               { stat: "Free", label: "US Shipping, Every Order" },
-              { stat: "30", label: "Day Returns Policy" },
-              { stat: "US", label: "Based Brand & Support" },
+              { stat: "60", label: "Day Returns Policy" },
+              { stat: "24h", label: "Email Support Reply" },
             ].map((item) => (
               <div key={item.label} className="py-5 sm:py-6 px-4 sm:px-6 text-center">
                 <span className="font-serif text-2xl sm:text-3xl font-light text-primary">{item.stat}</span>
@@ -273,7 +273,7 @@ export default async function HomePage() {
       </section>
 
       {/* =============================================================
-          6 · US BRAND — Warm full-width, numbered trust points
+          6 · TRUST POINTS — Warm full-width, numbered trust points
           ============================================================= */}
       <section className="bg-warm">
         <div className="container mx-auto px-5 lg:px-8 py-20 lg:py-28">
@@ -289,8 +289,8 @@ export default async function HomePage() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8">
             {[
-              { num: "01", title: "US Based Business", desc: "US-based with real customer service — not an anonymous overseas import." },
-              { num: "02", title: "US Consumer Rights", desc: "Full buyer protection. 30-day hassle-free returns." },
+              { num: "01", title: "Curated From Japan", desc: "Every knife hand-selected from trusted forges and partners in Japan." },
+              { num: "02", title: "Full Buyer Protection", desc: "Secure Stripe checkout. 60-day hassle-free returns." },
               { num: "03", title: "Fast US Delivery", desc: "Free shipping on every order. Most dispatched within 24 hours." },
               { num: "04", title: "Lifetime Knife Care", desc: "Sharpening guides, care tips, and ongoing support for the life of your knife." },
             ].map((point) => (
