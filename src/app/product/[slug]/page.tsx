@@ -109,14 +109,14 @@ function ProductJsonLd({ product, seo }: { product: Product; seo: any }) {
         deliveryTime: {
           "@type": "ShippingDeliveryTime",
           handlingTime: { "@type": "QuantitativeValue", minValue: 0, maxValue: 1, unitCode: "DAY" },
-          transitTime: { "@type": "QuantitativeValue", minValue: 1, maxValue: 3, unitCode: "DAY" },
+          transitTime: { "@type": "QuantitativeValue", minValue: 3, maxValue: 5, unitCode: "DAY" },
         },
       },
       hasMerchantReturnPolicy: {
         "@type": "MerchantReturnPolicy",
         applicableCountry: "US",
         returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
-        merchantReturnDays: 14,
+        merchantReturnDays: 60,
         returnMethod: "https://schema.org/ReturnByMail",
         returnFees: "https://schema.org/FreeReturn",
       },
@@ -342,7 +342,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             <div className="border-t border-border pt-5 sm:pt-6 grid grid-cols-2 gap-3 sm:gap-4">
               {[
                 { title: "Free US Shipping", desc: "USPS Priority Mail" },
-                { title: "14-Day Returns", desc: "No questions asked" },
+                { title: "60-Day Returns", desc: "No questions asked" },
                 { title: "Secure Payment", desc: "Stripe encrypted checkout" },
               ].map((item) => (
                 <div key={item.title}>
