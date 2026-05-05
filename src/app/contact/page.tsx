@@ -50,12 +50,28 @@ export default function ContactPage() {
         <h2 className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-3">
           Our Addresses
         </h2>
-        <div>
-          <p className="text-sm text-foreground/80">
-            Kemp House, 152–160 City Road<br />
-            London, EC1V 2NX<br />
-            United Kingdom
-          </p>
+        <div className="grid sm:grid-cols-2 gap-6">
+          <div>
+            <p className="text-[11px] tracking-[0.2em] uppercase text-muted-foreground mb-2">
+              UK Office
+            </p>
+            <p className="text-sm text-foreground/80">
+              Kemp House, 152–160 City Road<br />
+              London, EC1V 2NX<br />
+              United Kingdom
+            </p>
+          </div>
+          <div>
+            <p className="text-[11px] tracking-[0.2em] uppercase text-muted-foreground mb-2">
+              US Fulfillment
+            </p>
+            <p className="text-sm text-foreground/80">
+              InSync Fulfillment C/O Shimeru Knives<br />
+              1115 Hosler Dr<br />
+              Bolingbrook, IL 60490<br />
+              United States
+            </p>
+          </div>
         </div>
       </div>
     </div>

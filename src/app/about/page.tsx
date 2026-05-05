@@ -29,9 +29,10 @@ export default function AboutPage() {
         </p>
 
         <p>
-          We are a registered business based in the United Kingdom. All orders are fulfilled from
-          our warehouse with tracked shipping, and our customer service team responds to every
-          enquiry within 24 hours.
+          Shimeru Knives is operated from the United Kingdom. US orders are picked, packed and
+          shipped from our fulfillment partner in Illinois with tracked USPS shipping, typically
+          dispatched within 24 hours. Our customer service team responds to every enquiry within
+          24 hours.
         </p>
 
         <h2 className="font-serif text-xl font-light tracking-tight pt-4">Our Promise</h2>
@@ -39,7 +40,7 @@ export default function AboutPage() {
         <ul className="list-disc pl-5 space-y-2">
           <li>Genuine Japanese-style knives at honest prices</li>
           <li>Free shipping on every order</li>
-          <li>30-day returns — no questions asked</li>
+          <li>60-day returns — no questions asked</li>
           <li>Responsive customer support via email and phone</li>
           <li>Secure checkout powered by Stripe</li>
         </ul>
@@ -64,14 +65,28 @@ export default function AboutPage() {
           </li>
         </ul>
 
-        <h2 className="font-serif text-xl font-light tracking-tight pt-4">Our Address</h2>
+        <h2 className="font-serif text-xl font-light tracking-tight pt-4">Our Addresses</h2>
 
-        <div>
+        <div className="grid sm:grid-cols-2 gap-6">
           <div>
+            <p className="text-xs tracking-[0.2em] uppercase text-foreground/50 mb-2">
+              UK Office
+            </p>
             <p>
               Kemp House, 152–160 City Road<br />
               London, EC1V 2NX<br />
               United Kingdom
+            </p>
+          </div>
+          <div>
+            <p className="text-xs tracking-[0.2em] uppercase text-foreground/50 mb-2">
+              US Fulfillment
+            </p>
+            <p>
+              InSync Fulfillment C/O Shimeru Knives<br />
+              1115 Hosler Dr<br />
+              Bolingbrook, IL 60490<br />
+              United States
             </p>
           </div>
         </div>

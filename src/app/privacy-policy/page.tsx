@@ -128,9 +128,24 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-medium text-foreground mb-3">8. Contact Us</h2>
+          <h2 className="text-base font-medium text-foreground mb-3">8. Data Controller and Contact</h2>
+          <p className="mb-3">
+            The data controller responsible for your personal information is:
+          </p>
+          <p className="mb-3">
+            <strong>Shimeru Knives</strong><br />
+            Kemp House, 152–160 City Road<br />
+            London, EC1V 2NX<br />
+            United Kingdom<br />
+            Email:{" "}
+            <a href="mailto:sales@shimeruknives.us" className="text-primary underline underline-offset-2 hover:text-primary/80">
+              sales@shimeruknives.us
+            </a>
+          </p>
           <p>
-            If you have any questions about this Privacy Policy, please contact us on our{" "}
+            US orders are fulfilled by our partner warehouse in Bolingbrook, Illinois. For any
+            questions about this Privacy Policy or to exercise your data rights, please contact us
+            at the email above or via our{" "}
             <a href="/contact" className="text-primary underline underline-offset-2 hover:text-primary/80">
               contact page
             </a>

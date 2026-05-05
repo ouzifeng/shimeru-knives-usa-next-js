@@ -66,7 +66,7 @@ export function Footer() {
                 Company
               </p>
               <p>
-                {storeConfig.name} is a UK-registered business.<br />
+                {storeConfig.name} is a UK based business.<br />
                 Kemp House, 152&ndash;160 City Road, London EC1V 2NX, United Kingdom
               </p>
             </div>

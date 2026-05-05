@@ -170,9 +170,11 @@ export default function TermsPage() {
             9. Governing Law and Dispute Resolution
           </h2>
           <p>
-            These terms and conditions are governed by and construed in accordance with the laws of
-            the United States. Any disputes arising out of or relating to these terms shall be
-            subject to the exclusive jurisdiction of the courts of the United States.
+            Shimeru Knives is operated from the United Kingdom. These terms and conditions are
+            governed by and construed in accordance with the laws of England and Wales. Any
+            disputes arising out of or relating to these terms shall be subject to the exclusive
+            jurisdiction of the courts of England and Wales. This does not affect any statutory
+            consumer rights you have under the laws of the country in which you reside.
           </p>
         </section>
 
