@@ -94,7 +94,7 @@ export default function TermsPage() {
               back to us. The return shipping address will be provided during the return process.
             </li>
             <li>
-              <strong>Refund Policy:</strong> Refunds will be processed within 14 days after we
+              <strong>Refund Policy:</strong> Refunds will be processed within 10 business days after we
               receive the returned item. Refunds will be issued to the original payment method.
             </li>
             <li>
