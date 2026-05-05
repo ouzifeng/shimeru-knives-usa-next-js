@@ -92,7 +92,7 @@ export default async function HomePage() {
           {/* Image — desktop only (marketing graphic has baked-in text) */}
           <div className="relative hidden lg:block order-2">
             <Image
-              src="/hero-uk-brand.jpg"
+              src="/hero-brand.jpg"
               alt="Chef using a Shimeru Japanese knife"
               width={1200}
               height={742}
