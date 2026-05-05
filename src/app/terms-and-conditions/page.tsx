@@ -130,13 +130,13 @@ export default function TermsPage() {
           </h2>
           <ul className="list-disc pl-5 space-y-2">
             <li>
-              <strong>Product Warranties:</strong> We offer a lifetime warranty on all our products
-              against defects in material and workmanship under normal use.
+              <strong>Statutory Rights:</strong> Products are sold with the warranties required by
+              applicable consumer protection law, which are not affected by these terms.
             </li>
             <li>
-              <strong>Disclaimer of Warranties:</strong> Except as expressly stated in this section,
-              all products are provided &quot;as is&quot; without any further warranties, whether
-              express or implied.
+              <strong>Disclaimer of Warranties:</strong> Beyond those statutory rights, all products
+              are provided &quot;as is&quot; without any further warranties, whether express or
+              implied.
             </li>
           </ul>
         </section>

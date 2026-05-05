@@ -238,7 +238,7 @@ export async function POST(req: Request) {
 
       // ── Save order to Supabase ───────────────────────────────────
       const amountTotal = (session.amount_total || 0) / 100;
-      const currency = (session.currency || "gbp").toUpperCase();
+      const currency = (session.currency || "usd").toUpperCase();
       const wcCreated = !!wcOrder;
 
       const orderRow = {

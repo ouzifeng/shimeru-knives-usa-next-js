@@ -377,7 +377,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 },
                 {
                   title: "Uncompromising Sharpness",
-                  desc: "Our knives are guaranteed to be the sharpest you\u2019ve ever owned. No exceptions, no compromises\u2014just razor-sharp blades that elevate your culinary experience.",
+                  desc: "Engineered for unmatched sharpness\u2014razor-sharp blades that elevate your culinary experience.",
                 },
                 {
                   title: "Ergonomically Designed Handles",
@@ -385,7 +385,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 },
                 {
                   title: "Precision Double-Bevel 15\u00b0 Blade Edge",
-                  desc: "With a double-bevel edge sharpened to 15\u00b0\u2014compared to the standard 20-25\u00b0 of most Western knives\u2014our blades allow for smoother, faster cuts, enhancing your cooking efficiency by 2 to 3 times.",
+                  desc: "With a double-bevel edge sharpened to 15\u00b0\u2014compared to the standard 20-25\u00b0 of most Western knives\u2014our blades allow for noticeably smoother, faster cuts.",
                 },
               ].map((item) => (
                 <div key={item.title}>
