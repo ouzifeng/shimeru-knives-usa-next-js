@@ -188,7 +188,7 @@ function ProductJsonLd({ product, seo }: { product: Product; seo: any }) {
           { "@type": "Question", name: "How Long Does Shipping Take?", acceptedAnswer: { "@type": "Answer", text: "We offer free USPS Priority Mail shipping on all orders. All orders placed before 12pm EST are shipped the same day." } },
           { "@type": "Question", name: "Is Tracking Available?", acceptedAnswer: { "@type": "Answer", text: "Yes, USPS will provide tracking updates via email." } },
           { "@type": "Question", name: "Are Your Products Age Restricted?", acceptedAnswer: { "@type": "Answer", text: "Yes, you must be 18 or older to purchase a chef's knife online." } },
-          { "@type": "Question", name: "Are You A Dropshipping Site?", acceptedAnswer: { "@type": "Answer", text: "Absolutely not! We are a US based company that ship our own branded knives from the US. Our return address is to our office in the US." } },
+          { "@type": "Question", name: "Are You A Dropshipping Site?", acceptedAnswer: { "@type": "Answer", text: "No. We hold our own branded inventory in our US fulfillment partner's warehouse in Illinois, and every US order is picked, packed and shipped from there with USPS tracking. Returns go back to that same Illinois address. We are a UK based business but our US operations run end-to-end from the US." } },
           { "@type": "Question", name: "How Do I Return A Knife?", acceptedAnswer: { "@type": "Answer", text: "Returns are straightforward. Email us with your order number, and we will provide you with a prepaid return label. Once our warehouse has received it, we will refund the order." } },
         ],
       }) }} />

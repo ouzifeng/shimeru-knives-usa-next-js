@@ -26,7 +26,7 @@ const faqs = [
   {
     question: "Are You A Dropshipping Site?",
     answer:
-      "Absolutely not! We are a US based company that ship our own branded knives from the US.\n\nThere are a lot of companies out there shipping rubbish directly from China and not only is their quality subpar, their customer service is very poor.\n\nOur return address is to our office in the US.",
+      "No. We hold our own branded inventory in our US fulfillment partner's warehouse in Illinois, and every US order is picked, packed and shipped from there with USPS tracking.\n\nReturns go back to that same Illinois address — never overseas. We're a UK based business, but our US operations run end-to-end from the US to keep delivery and returns fast for US customers.",
   },
   {
     question: "How Do I Return A Knife?",
