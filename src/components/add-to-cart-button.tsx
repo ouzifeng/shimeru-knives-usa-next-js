@@ -37,19 +37,32 @@ function isBusinessDay(date: Date): boolean {
 
 function getEstimatedDelivery(): { from: string; to: string } {
   const now = new Date();
-  const hour = now.getHours();
-  // Cut-off 12pm — order before noon, dispatched same day
+
+  // Cutoff: 1pm Central Time (Illinois fulfillment warehouse).
+  // Compute the current hour in Central Time so customers in every browser
+  // timezone see the same dispatch logic — and it matches the cutoff stated
+  // on /shipping-and-delivery and configured in Merchant Center.
+  const ctHour = parseInt(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Chicago",
+      hour: "numeric",
+      hour12: false,
+    }).format(now),
+    10,
+  );
+
   const dispatchDay = new Date(now);
-  if (hour >= 12) {
+  if (ctHour >= 13) {
     dispatchDay.setDate(dispatchDay.getDate() + 1);
   }
 
-  // Skip weekends and bank holidays for dispatch
+  // Skip weekends and US federal holidays for dispatch
   while (!isBusinessDay(dispatchDay)) {
     dispatchDay.setDate(dispatchDay.getDate() + 1);
   }
 
-  // Delivery: 2-3 business days after dispatch (USPS Priority Mail)
+  // Delivery: 3-5 business days after dispatch — matches the timeframe
+  // stated on /shipping-and-delivery and the Merchant Center transit window.
   const addBusinessDays = (date: Date, days: number) => {
     const result = new Date(date);
     let added = 0;
@@ -62,8 +75,8 @@ function getEstimatedDelivery(): { from: string; to: string } {
     return result;
   };
 
-  const from = addBusinessDays(dispatchDay, 2);
-  const to = addBusinessDays(dispatchDay, 3);
+  const from = addBusinessDays(dispatchDay, 3);
+  const to = addBusinessDays(dispatchDay, 5);
 
   const fmt = (d: Date) =>
     d.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
