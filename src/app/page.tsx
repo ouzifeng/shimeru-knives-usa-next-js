@@ -292,7 +292,7 @@ export default async function HomePage() {
               { num: "01", title: "Curated From Japan", desc: "Every knife hand-selected from trusted forges and partners in Japan." },
               { num: "02", title: "Full Buyer Protection", desc: "Secure Stripe checkout. 60-day hassle-free returns." },
               { num: "03", title: "Fast US Delivery", desc: "Free shipping on every order. Most dispatched within 24 hours." },
-              { num: "04", title: "Lifetime Knife Care", desc: "Sharpening guides, care tips, and ongoing support for the life of your knife." },
+              { num: "04", title: "Knife Care Resources", desc: "Sharpening guides, care tips, and ongoing support to keep your knife performing." },
             ].map((point) => (
               <div key={point.num}>
                 <span className="font-serif text-4xl lg:text-5xl font-light text-primary/30 block mb-3">{point.num}</span>
