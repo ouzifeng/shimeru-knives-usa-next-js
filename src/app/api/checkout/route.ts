@@ -176,7 +176,10 @@ export async function POST(req: NextRequest) {
       success_url: `${origin}/order-confirmation?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/checkout`,
       shipping_address_collection: {
-        allowed_countries: ["GB", "US", "CA", "AU", "NZ", "IE", "DE", "FR", "ES", "IT", "NL", "BE", "AT", "CH", "SE", "DK", "NO", "FI", "PT", "PL"],
+        // US first so the country dropdown defaults to United States on the
+        // Stripe-hosted page. GB intentionally omitted — UK customers should
+        // use shimeruknives.co.uk instead of buying USD-priced goods here.
+        allowed_countries: ["US", "CA", "AU", "NZ", "IE", "DE", "FR", "ES", "IT", "NL", "BE", "AT", "CH", "SE", "DK", "NO", "FI", "PT", "PL"],
       },
       billing_address_collection: "required",
       metadata: {
