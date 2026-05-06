@@ -31,11 +31,24 @@ export async function PATCH(
   const body = await req.json() as {
     status?: string;
     expected_arrival?: string;
+    shipped_date?: string;
+    tracking_carrier?: string;
+    tracking_number?: string;
+    tracking_url?: string;
     notes?: string;
     lines?: Array<{ id: number; final_qty: number }>;
   };
 
-  const { status, expected_arrival, notes, lines } = body;
+  const {
+    status,
+    expected_arrival,
+    shipped_date,
+    tracking_carrier,
+    tracking_number,
+    tracking_url,
+    notes,
+    lines,
+  } = body;
 
   // Build PO header update
   const updates: Record<string, unknown> = {};
@@ -43,12 +56,23 @@ export async function PATCH(
     updates.status = status;
     // Auto-set timestamps
     const now = new Date().toISOString();
-    if (status === "sent") updates.sent_at = now;
+    if (status === "created") updates.finalised_at = now;
     if (status === "shipped") updates.shipped_at = now;
     if (status === "arrived") updates.arrived_at = now;
   }
+  if (shipped_date !== undefined) updates.shipped_date = shipped_date;
+  if (tracking_carrier !== undefined) updates.tracking_carrier = tracking_carrier;
+  if (tracking_number !== undefined) updates.tracking_number = tracking_number;
+  if (tracking_url !== undefined) updates.tracking_url = tracking_url;
   if (expected_arrival !== undefined) updates.expected_arrival = expected_arrival;
   if (notes !== undefined) updates.notes = notes;
+
+  // Auto-calc expected_arrival = shipped_date + 30 days when shipping (unless caller overrode it)
+  if (status === "shipped" && shipped_date && expected_arrival === undefined) {
+    const eta = new Date(shipped_date);
+    eta.setUTCDate(eta.getUTCDate() + 30);
+    updates.expected_arrival = eta.toISOString();
+  }
 
   if (Object.keys(updates).length > 0) {
     const { error: updateErr } = await sb

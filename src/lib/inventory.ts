@@ -8,7 +8,7 @@
  *  - Coverage target: 60 days (40-day lead time + 20-day safety buffer)
  *  - Warning: <45 days remaining. Critical: <30 days
  *  - Insufficient data flag: <7 days of order history for that SKU
- *  - Incoming stock = sum of final_qty on PO lines whose PO status is 'sent' or 'shipped'
+ *  - Incoming stock = sum of final_qty on PO lines whose PO status is 'created' or 'shipped'
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -292,12 +292,12 @@ async function calculateVelocities(
   return result;
 }
 
-/** Sum final_qty from PO lines where the PO is in 'sent' or 'shipped' status. */
+/** Sum final_qty from PO lines where the PO is in 'created' or 'shipped' status. */
 async function getIncomingStock(sb: SupabaseClient): Promise<Map<string, number>> {
   const { data, error } = await sb
     .from("purchase_order_lines")
     .select("sku, final_qty, purchase_orders!inner(status)")
-    .in("purchase_orders.status", ["sent", "shipped"]);
+    .in("purchase_orders.status", ["created", "shipped"]);
 
   if (error) throw new Error(`getIncomingStock: ${error.message}`);
 

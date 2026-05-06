@@ -28,6 +28,10 @@ interface PendingPO {
   reference: string;
   status: string;
   expected_arrival: string | null;
+  shipped_date: string | null;
+  tracking_carrier: string | null;
+  tracking_number: string | null;
+  tracking_url: string | null;
   created_at: string;
 }
 
@@ -54,6 +58,10 @@ interface PODetail {
   reference: string;
   status: string;
   expected_arrival: string | null;
+  shipped_date: string | null;
+  tracking_carrier: string | null;
+  tracking_number: string | null;
+  tracking_url: string | null;
   notes: string | null;
   created_at: string;
   purchase_order_lines: POLine[];
@@ -64,6 +72,10 @@ interface POListItem {
   reference: string;
   status: string;
   expected_arrival: string | null;
+  shipped_date: string | null;
+  tracking_carrier: string | null;
+  tracking_number: string | null;
+  tracking_url: string | null;
   created_at: string;
   totalUnits: number;
 }
@@ -118,7 +130,7 @@ function SkuStatusBadge({ status }: { status: SkuStatus }) {
 function POStatusBadge({ status }: { status: string }) {
   const config: Record<string, { dot: string; label: string }> = {
     draft: { dot: "bg-slate-400", label: "Draft" },
-    sent: { dot: "bg-blue-500", label: "Sent" },
+    created: { dot: "bg-blue-500", label: "Created" },
     shipped: { dot: "bg-amber-500", label: "Shipped" },
     arrived: { dot: "bg-emerald-500", label: "Arrived" },
     cancelled: { dot: "bg-red-600", label: "Cancelled" },
@@ -244,7 +256,10 @@ function PODetailPanel({
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [arrivalDate, setArrivalDate] = useState("");
+  const [shippedDate, setShippedDate] = useState("");
+  const [trackingCarrier, setTrackingCarrier] = useState("");
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [trackingUrl, setTrackingUrl] = useState("");
   // qty edits: map of line id -> value
   const [qtyEdits, setQtyEdits] = useState<Record<number, number>>({});
 
@@ -263,7 +278,10 @@ function PODetailPanel({
           });
           setQtyEdits(initial);
         }
-        if (d.expected_arrival) setArrivalDate(d.expected_arrival.slice(0, 10));
+        if (d.shipped_date) setShippedDate(d.shipped_date.slice(0, 10));
+        if (d.tracking_carrier) setTrackingCarrier(d.tracking_carrier);
+        if (d.tracking_number) setTrackingNumber(d.tracking_number);
+        if (d.tracking_url) setTrackingUrl(d.tracking_url);
       })
       .catch(() => setError("Failed to load PO details."))
       .finally(() => setLoading(false));
@@ -280,7 +298,18 @@ function PODetailPanel({
     setError(null);
     try {
       const body: Record<string, unknown> = { status: newStatus };
-      if (newStatus === "shipped" && arrivalDate) body.expected_arrival = arrivalDate;
+      if (newStatus === "shipped") {
+        if (!shippedDate) {
+          setError("Shipped date is required.");
+          setUpdating(false);
+          return;
+        }
+        body.shipped_date = shippedDate;
+        if (trackingCarrier) body.tracking_carrier = trackingCarrier;
+        if (trackingNumber) body.tracking_number = trackingNumber;
+        if (trackingUrl) body.tracking_url = trackingUrl;
+        // expected_arrival is auto-calculated server-side as shipped_date + 30 days
+      }
       // Save qty edits if draft
       if (detail.status === "draft") {
         body.lines = detail.purchase_order_lines.map((l) => ({
@@ -331,7 +360,7 @@ function PODetailPanel({
   if (loading) {
     return (
       <tr>
-        <td colSpan={5} className="px-4 py-6 text-center">
+        <td colSpan={6} className="px-4 py-6 text-center">
           <Loader2 className="mx-auto size-4 animate-spin text-muted-foreground" />
         </td>
       </tr>
@@ -341,7 +370,7 @@ function PODetailPanel({
   if (!detail) {
     return (
       <tr>
-        <td colSpan={5} className="px-4 py-4 text-center text-sm text-muted-foreground">
+        <td colSpan={6} className="px-4 py-4 text-center text-sm text-muted-foreground">
           {error ?? "PO not found."}
         </td>
       </tr>
@@ -349,12 +378,12 @@ function PODetailPanel({
   }
 
   const isDraft = detail.status === "draft";
-  const isSent = detail.status === "sent";
+  const isCreated = detail.status === "created";
   const isShipped = detail.status === "shipped";
 
   return (
     <tr>
-      <td colSpan={5} className="bg-muted/30 px-4 py-4">
+      <td colSpan={6} className="bg-muted/30 px-4 py-4">
         <div className="space-y-4">
           {/* Line items */}
           <div className="overflow-x-auto rounded border bg-background">
@@ -413,29 +442,66 @@ function PODetailPanel({
                 </Button>
                 <Button
                   size="sm"
-                  onClick={() => updateStatus("sent")}
+                  onClick={() => updateStatus("created")}
                   disabled={updating}
                 >
-                  {updating ? <Loader2 className="size-4 animate-spin" /> : "Mark Sent"}
+                  {updating ? <Loader2 className="size-4 animate-spin" /> : "Mark Created"}
                 </Button>
               </>
             )}
 
-            {isSent && (
-              <div className="flex flex-wrap items-center gap-2">
-                <Input
-                  type="date"
-                  value={arrivalDate}
-                  onChange={(e) => setArrivalDate(e.target.value)}
-                  className="h-8 w-40"
-                />
-                <Button
-                  size="sm"
-                  onClick={() => updateStatus("shipped")}
-                  disabled={updating}
-                >
-                  {updating ? <Loader2 className="size-4 animate-spin" /> : "Mark Shipped"}
-                </Button>
+            {isCreated && (
+              <div className="grid w-full gap-2 sm:grid-cols-2">
+                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                  Shipped date
+                  <Input
+                    type="date"
+                    value={shippedDate}
+                    onChange={(e) => setShippedDate(e.target.value)}
+                    className="h-8"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                  Carrier
+                  <Input
+                    type="text"
+                    placeholder="e.g. DPD"
+                    value={trackingCarrier}
+                    onChange={(e) => setTrackingCarrier(e.target.value)}
+                    className="h-8"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                  Tracking number
+                  <Input
+                    type="text"
+                    value={trackingNumber}
+                    onChange={(e) => setTrackingNumber(e.target.value)}
+                    className="h-8"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                  Tracking URL
+                  <Input
+                    type="url"
+                    placeholder="https://…"
+                    value={trackingUrl}
+                    onChange={(e) => setTrackingUrl(e.target.value)}
+                    className="h-8"
+                  />
+                </label>
+                <div className="sm:col-span-2">
+                  <Button
+                    size="sm"
+                    onClick={() => updateStatus("shipped")}
+                    disabled={updating}
+                  >
+                    {updating ? <Loader2 className="size-4 animate-spin" /> : "Mark Shipped"}
+                  </Button>
+                  <span className="ml-3 text-xs text-muted-foreground">
+                    ETA auto-set to shipped date + 30 days.
+                  </span>
+                </div>
               </div>
             )}
 
@@ -552,20 +618,21 @@ function PurchaseOrdersSection({ initialPOs }: { initialPOs: PendingPO[] }) {
               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Status</th>
               <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">Units</th>
               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Expected Arrival</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Tracking</th>
               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Created</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {loadingPOs && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center">
+                <td colSpan={6} className="px-4 py-6 text-center">
                   <Loader2 className="mx-auto size-4 animate-spin text-muted-foreground" />
                 </td>
               </tr>
             )}
             {!loadingPOs && displayPOs.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-sm text-muted-foreground">
+                <td colSpan={6} className="px-4 py-6 text-center text-sm text-muted-foreground">
                   No purchase orders yet.
                 </td>
               </tr>
@@ -584,6 +651,28 @@ function PurchaseOrdersSection({ initialPOs }: { initialPOs: PendingPO[] }) {
                     </td>
                     <td className="px-4 py-2 text-right tabular-nums">{po.totalUnits}</td>
                     <td className="px-4 py-2">{formatDate(po.expected_arrival)}</td>
+                    <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
+                      {po.tracking_number ? (
+                        po.tracking_url ? (
+                          <a
+                            href={po.tracking_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 font-mono text-xs text-primary underline underline-offset-2 hover:text-primary/80"
+                          >
+                            {po.tracking_carrier ? `${po.tracking_carrier} ` : ""}
+                            {po.tracking_number}
+                          </a>
+                        ) : (
+                          <span className="font-mono text-xs">
+                            {po.tracking_carrier ? `${po.tracking_carrier} ` : ""}
+                            {po.tracking_number}
+                          </span>
+                        )
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-2">{formatDate(po.created_at)}</td>
                   </tr>
                   {expandedId === po.id && (
