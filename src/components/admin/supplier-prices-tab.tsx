@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -63,21 +62,14 @@ export function SupplierPricesTab() {
       setLoading(true);
       setError(null);
       try {
-        const [pricesRes, settingsRes] = await Promise.all([
-          supabase
-            .from("supplier_prices")
-            .select("*")
-            .order("supplier", { ascending: true })
-            .order("sku", { ascending: true }),
-          supabase.from("supplier_settings").select("usd_to_gbp").eq("id", 1).maybeSingle(),
-        ]);
+        const res = await fetch("/api/admin/supplier-prices");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
         if (cancelled) return;
-        if (pricesRes.error) throw pricesRes.error;
-        setRows((pricesRes.data ?? []) as SupplierPriceRow[]);
-        const r = settingsRes.data?.usd_to_gbp;
-        if (r != null) {
-          setFx(Number(r));
-          setFxInput(String(r));
+        setRows((data.rows ?? []) as SupplierPriceRow[]);
+        if (data.fx != null) {
+          setFx(Number(data.fx));
+          setFxInput(String(data.fx));
         }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
@@ -99,12 +91,22 @@ export function SupplierPricesTab() {
     }
     setSavingFx(true);
     setError(null);
-    const { error: e } = await supabase
-      .from("supplier_settings")
-      .upsert({ id: 1, usd_to_gbp: n, updated_at: new Date().toISOString() });
-    setSavingFx(false);
-    if (e) setError(e.message);
-    else setFx(n);
+    try {
+      const res = await fetch("/api/admin/supplier-prices", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ usd_to_gbp: n }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || `HTTP ${res.status}`);
+      }
+      setFx(n);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSavingFx(false);
+    }
   }
 
   const suppliers = useMemo(() => {

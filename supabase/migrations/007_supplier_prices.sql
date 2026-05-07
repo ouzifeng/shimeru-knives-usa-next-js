@@ -47,3 +47,10 @@ CREATE TABLE IF NOT EXISTS supplier_settings (
 INSERT INTO supplier_settings (id, usd_to_gbp)
 VALUES (1, 0.79)
 ON CONFLICT (id) DO NOTHING;
+
+-- RLS is ON: supplier costs are sensitive (margins, supplier names).
+-- No policies are defined, so the anon (browser) client cannot read or
+-- write these tables. All access goes through the password-gated server
+-- route /api/admin/supplier-prices using the service role key.
+ALTER TABLE supplier_prices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE supplier_settings ENABLE ROW LEVEL SECURITY;
