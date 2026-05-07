@@ -1,0 +1,261 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+interface SupplierPriceRow {
+  id: number;
+  sku: string;
+  product_name: string | null;
+  supplier: string;
+  tier1_min: number;
+  tier1_max: number | null;
+  tier1_unit_usd: number | null;
+  tier2_min: number | null;
+  tier2_max: number | null;
+  tier2_unit_usd: number | null;
+  tier3_min: number | null;
+  tier3_unit_usd: number | null;
+  box_type: string | null;
+  box_price_usd: number | null;
+  notes: string | null;
+}
+
+const BOX_LABELS: Record<string, string> = {
+  single_knife: "Single knife",
+  cleaver: "Cleaver box",
+  steak_4pc: "4pc steak (magnetic)",
+  eva_8pc: "8pc EVA",
+  eva_5pc: "5pc EVA",
+  eva_7pc: "7pc EVA",
+  eva_10pc: "10pc EVA",
+  wood_box: "Wood box",
+  none: "—",
+};
+
+function fmtUsd(v: number | null | undefined): string {
+  if (v == null) return "—";
+  return `$${v.toFixed(2)}`;
+}
+
+function fmtGbp(usd: number | null | undefined, fx: number): string {
+  if (usd == null) return "—";
+  return `£${(usd * fx).toFixed(2)}`;
+}
+
+export function SupplierPricesTab() {
+  const [rows, setRows] = useState<SupplierPriceRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [supplierFilter, setSupplierFilter] = useState<string>("all");
+
+  const [fx, setFx] = useState<number>(0.79);
+  const [fxInput, setFxInput] = useState<string>("0.79");
+  const [savingFx, setSavingFx] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [pricesRes, settingsRes] = await Promise.all([
+          supabase
+            .from("supplier_prices")
+            .select("*")
+            .order("supplier", { ascending: true })
+            .order("sku", { ascending: true }),
+          supabase.from("supplier_settings").select("usd_to_gbp").eq("id", 1).maybeSingle(),
+        ]);
+        if (cancelled) return;
+        if (pricesRes.error) throw pricesRes.error;
+        setRows((pricesRes.data ?? []) as SupplierPriceRow[]);
+        const r = settingsRes.data?.usd_to_gbp;
+        if (r != null) {
+          setFx(Number(r));
+          setFxInput(String(r));
+        }
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function saveFx() {
+    const n = Number(fxInput);
+    if (!isFinite(n) || n <= 0) {
+      setError("FX rate must be a positive number");
+      return;
+    }
+    setSavingFx(true);
+    setError(null);
+    const { error: e } = await supabase
+      .from("supplier_settings")
+      .upsert({ id: 1, usd_to_gbp: n, updated_at: new Date().toISOString() });
+    setSavingFx(false);
+    if (e) setError(e.message);
+    else setFx(n);
+  }
+
+  const suppliers = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of rows) set.add(r.supplier);
+    return Array.from(set).sort();
+  }, [rows]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (supplierFilter !== "all" && r.supplier !== supplierFilter) return false;
+      if (!q) return true;
+      return (
+        r.sku.toLowerCase().includes(q) ||
+        (r.product_name ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [rows, search, supplierFilter]);
+
+  return (
+    <div className="space-y-6">
+      {/* Header / FX rate */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Supplier Prices</h2>
+          <p className="text-sm text-muted-foreground">
+            EXW unit prices by tier, plus the gift-box price each SKU ships in.
+            All-in prices include the box.
+          </p>
+        </div>
+        <div className="flex items-end gap-2">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">USD → GBP</label>
+            <Input
+              value={fxInput}
+              onChange={(e) => setFxInput(e.target.value)}
+              className="w-24"
+            />
+          </div>
+          <Button onClick={saveFx} disabled={savingFx} variant="outline" size="sm">
+            {savingFx ? <Loader2 className="size-4 animate-spin" /> : "Save"}
+          </Button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Input
+          placeholder="Search SKU or name…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-sm"
+        />
+        <select
+          value={supplierFilter}
+          onChange={(e) => setSupplierFilter(e.target.value)}
+          className="h-9 rounded-md border bg-background px-3 text-sm"
+        >
+          <option value="all">All suppliers</option>
+          {suppliers.map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
+        <span className="text-xs text-muted-foreground">
+          {filtered.length} of {rows.length} SKUs
+        </span>
+      </div>
+
+      {error && (
+        <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+          <Loader2 className="mr-2 size-4 animate-spin" /> Loading…
+        </div>
+      ) : (
+        <div className="overflow-auto rounded-lg border max-h-[75vh]">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 z-10 border-b bg-muted/40">
+              <tr>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">SKU</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Product</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Box</th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground" colSpan={2}>
+                  Tier 1 (1–49) all-in
+                </th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground" colSpan={2}>
+                  Tier 2 (50–200) all-in
+                </th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground" colSpan={2}>
+                  Tier 3 (200+) all-in
+                </th>
+              </tr>
+              <tr>
+                <th className="px-3 py-1" />
+                <th className="px-3 py-1" />
+                <th className="px-3 py-1" />
+                <th className="px-3 py-1 text-right text-[10px] font-medium uppercase tracking-wide text-muted-foreground">USD</th>
+                <th className="px-3 py-1 text-right text-[10px] font-medium uppercase tracking-wide text-muted-foreground">GBP</th>
+                <th className="px-3 py-1 text-right text-[10px] font-medium uppercase tracking-wide text-muted-foreground">USD</th>
+                <th className="px-3 py-1 text-right text-[10px] font-medium uppercase tracking-wide text-muted-foreground">GBP</th>
+                <th className="px-3 py-1 text-right text-[10px] font-medium uppercase tracking-wide text-muted-foreground">USD</th>
+                <th className="px-3 py-1 text-right text-[10px] font-medium uppercase tracking-wide text-muted-foreground">GBP</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="px-3 py-6 text-center text-sm text-muted-foreground">
+                    No supplier prices yet. Run the import script to populate.
+                  </td>
+                </tr>
+              )}
+              {filtered.map((r) => {
+                const box = r.box_price_usd ?? 0;
+                const t1 = r.tier1_unit_usd != null ? r.tier1_unit_usd + box : null;
+                const t2 = r.tier2_unit_usd != null ? r.tier2_unit_usd + box : null;
+                const t3 = r.tier3_unit_usd != null ? r.tier3_unit_usd + box : null;
+                return (
+                  <tr key={r.id} className="hover:bg-muted/40">
+                    <td className="px-3 py-2 font-mono text-xs tabular-nums">{r.sku}</td>
+                    <td className="px-3 py-2 max-w-[260px] truncate" title={r.product_name ?? ""}>
+                      {r.product_name ?? "—"}
+                    </td>
+                    <td className="px-3 py-2 text-xs">
+                      <div className="flex flex-col">
+                        <span>{r.box_type ? (BOX_LABELS[r.box_type] ?? r.box_type) : "—"}</span>
+                        {r.box_price_usd ? (
+                          <span className="text-muted-foreground">
+                            {fmtUsd(r.box_price_usd)} / {fmtGbp(r.box_price_usd, fx)}
+                          </span>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">{fmtUsd(t1)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{fmtGbp(t1, fx)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{fmtUsd(t2)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{fmtGbp(t2, fx)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{fmtUsd(t3)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{fmtGbp(t3, fx)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
