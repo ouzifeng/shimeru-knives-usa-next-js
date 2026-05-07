@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
+import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { storeConfig } from "../../../store.config";
 
 interface SupplierPriceRow {
   id: number;
@@ -21,6 +23,7 @@ interface SupplierPriceRow {
   box_type: string | null;
   box_price_usd: number | null;
   notes: string | null;
+  image_url: string | null;
 }
 
 const BOX_LABELS: Record<string, string> = {
@@ -35,14 +38,13 @@ const BOX_LABELS: Record<string, string> = {
   none: "—",
 };
 
-function fmtUsd(v: number | null | undefined): string {
-  if (v == null) return "—";
-  return `$${v.toFixed(2)}`;
-}
+const IS_GBP = storeConfig.currency === "GBP";
+const SYMBOL = storeConfig.currencySymbol;
 
-function fmtGbp(usd: number | null | undefined, fx: number): string {
+function fmtPrice(usd: number | null | undefined, fx: number): string {
   if (usd == null) return "—";
-  return `£${(usd * fx).toFixed(2)}`;
+  const v = IS_GBP ? usd * fx : usd;
+  return `${SYMBOL}${v.toFixed(2)}`;
 }
 
 export function SupplierPricesTab() {
@@ -129,7 +131,7 @@ export function SupplierPricesTab() {
 
   return (
     <div className="space-y-6">
-      {/* Header / FX rate */}
+      {/* Header / FX rate (GBP build only) */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold tracking-tight">Supplier Prices</h2>
@@ -138,19 +140,21 @@ export function SupplierPricesTab() {
             All-in prices include the box.
           </p>
         </div>
-        <div className="flex items-end gap-2">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">USD → GBP</label>
-            <Input
-              value={fxInput}
-              onChange={(e) => setFxInput(e.target.value)}
-              className="w-24"
-            />
+        {IS_GBP && (
+          <div className="flex items-end gap-2">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">USD → GBP</label>
+              <Input
+                value={fxInput}
+                onChange={(e) => setFxInput(e.target.value)}
+                className="w-24"
+              />
+            </div>
+            <Button onClick={saveFx} disabled={savingFx} variant="outline" size="sm">
+              {savingFx ? <Loader2 className="size-4 animate-spin" /> : "Save"}
+            </Button>
           </div>
-          <Button onClick={saveFx} disabled={savingFx} variant="outline" size="sm">
-            {savingFx ? <Loader2 className="size-4 animate-spin" /> : "Save"}
-          </Button>
-        </div>
+        )}
       </div>
 
       {/* Filters */}
@@ -191,35 +195,19 @@ export function SupplierPricesTab() {
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10 border-b bg-muted/40">
               <tr>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground w-16">Image</th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">SKU</th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Product</th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Box</th>
-                <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground" colSpan={2}>
-                  Tier 1 (1–49) all-in
-                </th>
-                <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground" colSpan={2}>
-                  Tier 2 (50–200) all-in
-                </th>
-                <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground" colSpan={2}>
-                  Tier 3 (200+) all-in
-                </th>
-              </tr>
-              <tr>
-                <th className="px-3 py-1" />
-                <th className="px-3 py-1" />
-                <th className="px-3 py-1" />
-                <th className="px-3 py-1 text-right text-[10px] font-medium uppercase tracking-wide text-muted-foreground">USD</th>
-                <th className="px-3 py-1 text-right text-[10px] font-medium uppercase tracking-wide text-muted-foreground">GBP</th>
-                <th className="px-3 py-1 text-right text-[10px] font-medium uppercase tracking-wide text-muted-foreground">USD</th>
-                <th className="px-3 py-1 text-right text-[10px] font-medium uppercase tracking-wide text-muted-foreground">GBP</th>
-                <th className="px-3 py-1 text-right text-[10px] font-medium uppercase tracking-wide text-muted-foreground">USD</th>
-                <th className="px-3 py-1 text-right text-[10px] font-medium uppercase tracking-wide text-muted-foreground">GBP</th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground">Tier 1 (1–49)</th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground">Tier 2 (50–200)</th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground">Tier 3 (200+)</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-3 py-6 text-center text-sm text-muted-foreground">
+                  <td colSpan={7} className="px-3 py-6 text-center text-sm text-muted-foreground">
                     No supplier prices yet. Run the import script to populate.
                   </td>
                 </tr>
@@ -231,6 +219,20 @@ export function SupplierPricesTab() {
                 const t3 = r.tier3_unit_usd != null ? r.tier3_unit_usd + box : null;
                 return (
                   <tr key={r.id} className="hover:bg-muted/40">
+                    <td className="px-2 py-2">
+                      {r.image_url ? (
+                        <Image
+                          src={r.image_url}
+                          alt={r.product_name ?? r.sku}
+                          width={48}
+                          height={48}
+                          className="size-12 rounded-md object-cover bg-muted"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="size-12 rounded-md bg-muted" />
+                      )}
+                    </td>
                     <td className="px-3 py-2 font-mono text-xs tabular-nums">{r.sku}</td>
                     <td className="px-3 py-2 max-w-[260px] truncate" title={r.product_name ?? ""}>
                       {r.product_name ?? "—"}
@@ -240,17 +242,14 @@ export function SupplierPricesTab() {
                         <span>{r.box_type ? (BOX_LABELS[r.box_type] ?? r.box_type) : "—"}</span>
                         {r.box_price_usd ? (
                           <span className="text-muted-foreground">
-                            {fmtUsd(r.box_price_usd)} / {fmtGbp(r.box_price_usd, fx)}
+                            {fmtPrice(r.box_price_usd, fx)}
                           </span>
                         ) : null}
                       </div>
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtUsd(t1)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtGbp(t1, fx)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtUsd(t2)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtGbp(t2, fx)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtUsd(t3)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtGbp(t3, fx)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{fmtPrice(t1, fx)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{fmtPrice(t2, fx)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{fmtPrice(t3, fx)}</td>
                   </tr>
                 );
               })}

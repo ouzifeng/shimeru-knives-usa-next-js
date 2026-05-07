@@ -7,13 +7,15 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const sb = getSupabaseAdmin();
-  const [pricesRes, settingsRes] = await Promise.all([
+  const [pricesRes, settingsRes, productsRes, variationsRes] = await Promise.all([
     sb
       .from("supplier_prices")
       .select("*")
       .order("supplier", { ascending: true })
       .order("sku", { ascending: true }),
     sb.from("supplier_settings").select("usd_to_gbp").eq("id", 1).maybeSingle(),
+    sb.from("products").select("id,sku,images"),
+    sb.from("product_variations").select("sku,product_id,image").not("sku", "is", null),
   ]);
   if (pricesRes.error) {
     return NextResponse.json({ error: pricesRes.error.message }, { status: 500 });
@@ -21,8 +23,31 @@ export async function GET() {
   if (settingsRes.error) {
     return NextResponse.json({ error: settingsRes.error.message }, { status: 500 });
   }
+
+  type ImageObj = { src?: string };
+  const imageBySku = new Map<string, string>();
+  const productImageById = new Map<number, string>();
+  for (const p of (productsRes.data ?? []) as { id: number; sku: string | null; images: ImageObj[] | null }[]) {
+    const src = Array.isArray(p.images) ? p.images[0]?.src : undefined;
+    if (!src) continue;
+    if (p.sku) imageBySku.set(p.sku, src);
+    productImageById.set(p.id, src);
+  }
+  for (const v of (variationsRes.data ?? []) as { sku: string | null; product_id: number | null; image: ImageObj | null }[]) {
+    if (!v.sku) continue;
+    const own = v.image?.src;
+    const fallback = v.product_id != null ? productImageById.get(v.product_id) : undefined;
+    const src = own || fallback;
+    if (src) imageBySku.set(v.sku, src);
+  }
+
+  const rows = (pricesRes.data ?? []).map((r: { sku: string }) => ({
+    ...r,
+    image_url: imageBySku.get(r.sku) ?? null,
+  }));
+
   return NextResponse.json({
-    rows: pricesRes.data ?? [],
+    rows,
     fx: settingsRes.data?.usd_to_gbp ?? 0.79,
   });
 }
