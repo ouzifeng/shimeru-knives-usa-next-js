@@ -217,6 +217,19 @@ export function SupplierPricesTab() {
                 const t1 = r.tier1_unit_usd != null ? r.tier1_unit_usd + box : null;
                 const t2 = r.tier2_unit_usd != null ? r.tier2_unit_usd + box : null;
                 const t3 = r.tier3_unit_usd != null ? r.tier3_unit_usd + box : null;
+                const t1u = r.tier1_unit_usd != null ? Number(r.tier1_unit_usd) : null;
+                const t2u = r.tier2_unit_usd != null ? Number(r.tier2_unit_usd) : null;
+                const t3u = r.tier3_unit_usd != null ? Number(r.tier3_unit_usd) : null;
+                const tierCell = (allIn: number | null, unit: number | null) => (
+                  <div className="flex flex-col items-end leading-tight">
+                    <span>{fmtPrice(allIn, fx)}</span>
+                    {unit != null && box > 0 ? (
+                      <span className="text-[10px] text-muted-foreground">
+                        ex box {fmtPrice(unit, fx)}
+                      </span>
+                    ) : null}
+                  </div>
+                );
                 return (
                   <tr key={r.id} className="hover:bg-muted/40">
                     <td className="px-2 py-2">
@@ -247,9 +260,9 @@ export function SupplierPricesTab() {
                         ) : null}
                       </div>
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtPrice(t1, fx)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtPrice(t2, fx)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtPrice(t3, fx)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{tierCell(t1, t1u)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{tierCell(t2, t2u)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{tierCell(t3, t3u)}</td>
                   </tr>
                 );
               })}
