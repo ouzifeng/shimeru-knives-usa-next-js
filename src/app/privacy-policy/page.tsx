@@ -138,8 +138,8 @@ export default function PrivacyPage() {
             London, EC1V 2NX<br />
             United Kingdom<br />
             Email:{" "}
-            <a href="mailto:sales@shimeruknives.us" className="text-primary underline underline-offset-2 hover:text-primary/80">
-              sales@shimeruknives.us
+            <a href="mailto:sales@shimeruknives.co.uk" className="text-primary underline underline-offset-2 hover:text-primary/80">
+              sales@shimeruknives.co.uk
             </a>
           </p>
           <p>

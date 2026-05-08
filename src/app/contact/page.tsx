@@ -35,8 +35,8 @@ export default function ContactPage() {
         <div className="space-y-2 mb-8">
           <p className="text-sm text-foreground/80">
             <span className="font-medium">Email:</span>{" "}
-            <a href="mailto:sales@shimeruknives.us" className="underline underline-offset-2 hover:text-foreground">
-              sales@shimeruknives.us
+            <a href="mailto:sales@shimeruknives.co.uk" className="underline underline-offset-2 hover:text-foreground">
+              sales@shimeruknives.co.uk
             </a>
           </p>
           <p className="text-sm text-foreground/80">
@@ -53,9 +53,10 @@ export default function ContactPage() {
         <div className="grid sm:grid-cols-2 gap-6">
           <div>
             <p className="text-[11px] tracking-[0.2em] uppercase text-muted-foreground mb-2">
-              UK Office
+              UK Correspondence
             </p>
             <p className="text-sm text-foreground/80">
+              David Oak / Shimeru Knives<br />
               Kemp House, 152–160 City Road<br />
               London, EC1V 2NX<br />
               United Kingdom

@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      sender: { name: "Shimeru Knives", email: "sales@shimeruknives.us" },
+      sender: { name: "Shimeru Knives", email: "sales@shimeruknives.co.uk" },
       to: [{ email: order.customer_email, name: order.customer_name || "" }],
       subject: `Your Return Request — Order #${order.wc_order_id}`,
       htmlContent: customerHtml,
@@ -210,7 +210,7 @@ export async function POST(req: NextRequest) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      sender: { name: "Shimeru Knives", email: "sales@shimeruknives.us" },
+      sender: { name: "Shimeru Knives", email: "sales@shimeruknives.co.uk" },
       to: [{ email: "mr.davidoak@gmail.com", name: "David" }],
       subject: `New Return Request — Order #${order.wc_order_id}`,
       htmlContent: adminHtml,

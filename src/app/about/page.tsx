@@ -16,10 +16,20 @@ export default function AboutPage() {
 
       <div className="prose prose-neutral max-w-none text-sm leading-relaxed text-foreground/80 space-y-5">
         <p>
-          Shimeru Knives was founded with a simple idea: that every home cook deserves access to
-          genuinely good Japanese knives without paying collector prices. We work directly with
-          trusted forges and manufacturers in Japan and Mainland Asia to bring you knives that
-          perform beautifully at a price that makes sense.
+          Shimeru Knives is a UK retailer of Japanese-style chef knives, established in 2023 by
+          David Oak. We started in the United Kingdom selling to home cooks at{" "}
+          <a href="https://shimeruknives.co.uk" className="underline underline-offset-2">
+            shimeruknives.co.uk
+          </a>
+          , and launched in the United States in 2026 to bring the same range to North American
+          kitchens.
+        </p>
+
+        <p>
+          Our idea is simple: every home cook deserves access to genuinely good Japanese knives
+          without paying collector prices. We work directly with trusted forging partners in Asia
+          to source knives built to authentic Japanese geometry — high-hardness steel, thin edges,
+          balanced handles — at a price that makes sense for everyday cooking.
         </p>
 
         <p>
@@ -29,10 +39,20 @@ export default function AboutPage() {
         </p>
 
         <p>
-          Shimeru Knives is operated from the United Kingdom. US orders are picked, packed and
-          shipped from our fulfillment partner in Illinois with tracked USPS shipping, typically
-          dispatched within 24 hours. Our customer service team responds to every enquiry within
-          24 hours.
+          US orders are picked, packed and shipped from our fulfillment partner in Bolingbrook,
+          Illinois, with tracked USPS shipping typically dispatched within 24 hours. Our customer
+          service team responds to every enquiry within 24 hours.
+        </p>
+
+        <h2 className="font-serif text-xl font-light tracking-tight pt-4">A Note From the Founder</h2>
+
+        <p>
+          Hi, I&apos;m David Oak — I started Shimeru Knives in 2023 after years of buying,
+          using and re-sharpening cheap kitchen knives that never quite cut the way I wanted
+          them to. I tried a Japanese gyuto, never looked back, and started Shimeru to bring
+          the same knives to home cooks at honest prices. If you ever have a question about a
+          knife, the steel, sharpening, or your order, I personally read every email that
+          comes into our support inbox.
         </p>
 
         <h2 className="font-serif text-xl font-light tracking-tight pt-4">Our Promise</h2>
@@ -53,8 +73,8 @@ export default function AboutPage() {
         <ul className="list-none pl-0 space-y-1">
           <li>
             <span className="font-medium">Email:</span>{" "}
-            <a href="mailto:sales@shimeruknives.us" className="underline underline-offset-2">
-              sales@shimeruknives.us
+            <a href="mailto:sales@shimeruknives.co.uk" className="underline underline-offset-2">
+              sales@shimeruknives.co.uk
             </a>
           </li>
           <li>
@@ -70,9 +90,10 @@ export default function AboutPage() {
         <div className="grid sm:grid-cols-2 gap-6">
           <div>
             <p className="text-xs tracking-[0.2em] uppercase text-foreground/50 mb-2">
-              UK Office
+              UK Correspondence
             </p>
             <p>
+              David Oak / Shimeru Knives<br />
               Kemp House, 152–160 City Road<br />
               London, EC1V 2NX<br />
               United Kingdom

@@ -48,6 +48,20 @@ export function Footer() {
               <li><Link href="/privacy-policy" className="hover:text-background transition-colors">Privacy Policy</Link></li>
               <li><Link href="/terms-and-conditions" className="hover:text-background transition-colors">Terms &amp; Conditions</Link></li>
             </ul>
+
+            <h4 className="text-[13px] tracking-[0.25em] uppercase text-background/50 mt-8 mb-5">Follow</h4>
+            <ul className="space-y-3 text-base">
+              <li>
+                <a
+                  href="https://www.facebook.com/people/Shimeru-Knives/61579922601854/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-background transition-colors"
+                >
+                  Facebook
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
 
@@ -66,8 +80,9 @@ export function Footer() {
                 Company
               </p>
               <p>
-                {storeConfig.name} is a UK based business.<br />
-                Kemp House, 152&ndash;160 City Road, London EC1V 2NX, United Kingdom
+                {storeConfig.name} is a trading name of David Oak, a UK sole trader, established 2023.<br />
+                Correspondence: Kemp House, 152&ndash;160 City Road, London EC1V 2NX, United Kingdom.<br />
+                UK store: <a href="https://shimeruknives.co.uk" className="underline underline-offset-2 hover:text-background/70">shimeruknives.co.uk</a>
               </p>
             </div>
             <div>
@@ -75,7 +90,7 @@ export function Footer() {
                 US Fulfillment
               </p>
               <p>
-                US orders are picked, packed and shipped from our fulfillment partner in Illinois.<br />
+                US orders are picked, packed and shipped from our fulfillment partner in Bolingbrook, Illinois.<br />
                 Free USPS Ground Advantage shipping, dispatched within 24 hours.
               </p>
             </div>

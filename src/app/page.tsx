@@ -29,7 +29,36 @@ function HomepageJsonLd() {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: storeConfig.name,
+    legalName: "Shimeru Knives",
+    alternateName: "Shimeru",
     url: storeConfig.url,
+    description: storeConfig.description,
+    foundingDate: "2023",
+    founder: {
+      "@type": "Person",
+      name: "David Oak",
+    },
+    email: "sales@shimeruknives.co.uk",
+    telephone: "+1-334-309-8138",
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "Kemp House, 152-160 City Road",
+      addressLocality: "London",
+      postalCode: "EC1V 2NX",
+      addressCountry: "GB",
+    },
+    contactPoint: {
+      "@type": "ContactPoint",
+      contactType: "customer service",
+      email: "sales@shimeruknives.co.uk",
+      telephone: "+1-334-309-8138",
+      areaServed: ["US", "GB"],
+      availableLanguage: ["English"],
+    },
+    sameAs: [
+      "https://shimeruknives.co.uk",
+      "https://www.facebook.com/people/Shimeru-Knives/61579922601854/",
+    ],
   };
   return (
     <>

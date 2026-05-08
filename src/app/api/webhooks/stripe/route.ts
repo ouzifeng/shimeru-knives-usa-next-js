@@ -26,12 +26,18 @@ export async function POST(req: Request) {
   // The UK and US stores share one Stripe account, so every event is delivered
   // to both webhook endpoints. Only handle events whose checkout was created
   // from this store's domain.
+  // NOTE: US store now lives at us.shimeruknives.co.uk. The UK webhook on the
+  // sibling repo must be updated to exclude the us. subdomain, otherwise it
+  // will also process US events (both end with shimeruknives.co.uk).
   const obj = event.data.object as { success_url?: string; cancel_url?: string };
   const routingUrl = obj.success_url || obj.cancel_url;
   if (routingUrl) {
     try {
       const host = new URL(routingUrl).hostname;
-      if (!host.endsWith("shimeruknives.us")) {
+      const isUsStore =
+        host === "us.shimeruknives.co.uk" ||
+        host.endsWith("shimeruknives.us"); // legacy
+      if (!isUsStore) {
         return NextResponse.json({ received: true, ignored: "other-store" });
       }
     } catch {
