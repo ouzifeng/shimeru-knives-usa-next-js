@@ -72,32 +72,20 @@ export function Footer() {
           </div>
         )}
 
-        {/* Company disclosure */}
-        <div className="border-t border-background/10 mt-14 pt-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs leading-relaxed text-background/45">
-            <div>
-              <p className="text-[11px] tracking-[0.25em] uppercase text-background/55 mb-2">
-                Company
-              </p>
-              <p>
-                {storeConfig.name} is a trading name of David Oak, a UK sole trader, established 2023.<br />
-                Correspondence: Kemp House, 152&ndash;160 City Road, London EC1V 2NX, United Kingdom.<br />
-                UK store: <a href="https://shimeruknives.co.uk" className="underline underline-offset-2 hover:text-background/70">shimeruknives.co.uk</a>
-              </p>
-            </div>
-            <div>
-              <p className="text-[11px] tracking-[0.25em] uppercase text-background/55 mb-2">
-                US Fulfillment
-              </p>
-              <p>
-                US orders are picked, packed and shipped from our fulfillment partner in Bolingbrook, Illinois.<br />
-                Free USPS Ground Advantage shipping, dispatched within 24 hours.
-              </p>
-            </div>
-          </div>
+        {/* Region switcher */}
+        <div className="border-t border-background/10 mt-14 pt-6 flex justify-center">
+          <p className="text-xs text-background/50">
+            <span aria-hidden>🇺🇸</span> You&rsquo;re shopping on our US store.{" "}
+            <a
+              href="https://shimeruknives.co.uk"
+              className="underline underline-offset-2 hover:text-background transition-colors"
+            >
+              Visit our UK store &rarr;
+            </a>
+          </p>
         </div>
 
-        <div className="border-t border-background/10 mt-8 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="border-t border-background/10 mt-6 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs text-background/30">
             &copy; {new Date().getFullYear()} {storeConfig.name}. All rights reserved.
           </p>
