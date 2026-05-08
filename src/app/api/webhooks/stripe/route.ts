@@ -283,7 +283,7 @@ export async function POST(req: Request) {
         console.error("Failed to create WC order after 3 attempts:", lastError);
         try {
           await sendTelegramMessage(
-            `⚠️ <b>WC Order Failed!</b>\n\n` +
+            `🇺🇸 ⚠️ <b>WC Order Failed (US)</b>\n\n` +
             `<b>Customer:</b> ${customer?.name || "Unknown"}\n` +
             `<b>Email:</b> ${customer?.email || "—"}\n` +
             `<b>Amount:</b> ${currency} ${amountTotal.toFixed(2)}\n` +
@@ -370,7 +370,7 @@ export async function POST(req: Request) {
         });
 
         await sendTelegramMessage(
-          `🔔 <b>New Order!</b>\n\n` +
+          `🇺🇸 🔔 <b>New Order (US)</b>\n\n` +
           `<b>Customer:</b> ${customer?.name || "Unknown"}\n` +
           `<b>Email:</b> ${customer?.email || "—"}\n` +
           `<b>Amount:</b> ${currency} ${amountTotal.toFixed(2)}\n` +

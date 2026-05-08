@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleAdsApi } from "google-ads-api";
 
+// US PMax campaign ID — not launched yet (expected ~2026-05-22).
+// Until set, the dashboard returns zeros so UK campaign data isn't blended in.
+const CAMPAIGN_ID = "";
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const from = searchParams.get("from");
@@ -8,6 +12,16 @@ export async function GET(req: NextRequest) {
 
   if (!from || !to) {
     return NextResponse.json({ error: "from and to required" }, { status: 400 });
+  }
+
+  if (!CAMPAIGN_ID) {
+    return NextResponse.json({
+      totalSpend: 0,
+      totalClicks: 0,
+      totalImpressions: 0,
+      totalConversions: 0,
+      daily: [],
+    });
   }
 
   const client = new GoogleAdsApi({
@@ -29,8 +43,9 @@ export async function GET(req: NextRequest) {
         metrics.clicks,
         metrics.impressions,
         metrics.conversions
-      FROM customer
-      WHERE segments.date >= '${from}'
+      FROM campaign
+      WHERE campaign.id = ${CAMPAIGN_ID}
+        AND segments.date >= '${from}'
         AND segments.date <= '${to}'
       ORDER BY segments.date DESC
     `);
