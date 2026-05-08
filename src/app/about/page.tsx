@@ -93,7 +93,7 @@ export default function AboutPage() {
               UK Correspondence
             </p>
             <p>
-              David Oak / Shimeru Knives<br />
+              Shimeru Knives<br />
               Kemp House, 152–160 City Road<br />
               London, EC1V 2NX<br />
               United Kingdom
