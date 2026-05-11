@@ -367,7 +367,7 @@ export const ALL_PRODUCTS_SEO: CategorySeo = {
     {
       question: "Do you ship to the US?",
       answer:
-        "Yes — free shipping on all US orders. Most orders arrive within 5–7 business days.",
+        "Yes — free standard shipping on all US orders. Most orders arrive within 3–5 business days. Express shipping (1–3 business days) is available at checkout.",
     },
   ],
 };
