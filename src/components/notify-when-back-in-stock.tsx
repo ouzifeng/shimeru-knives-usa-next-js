@@ -45,7 +45,7 @@ export function NotifyWhenBackInStock({
 
   if (status === "success") {
     return (
-      <div className="border-t border-border pt-5 sm:pt-6">
+      <div className="pt-2">
         <p className="text-sm text-green-700 font-medium">
           Got it — we&rsquo;ll email you when {productName} is back in stock.
         </p>
@@ -54,7 +54,7 @@ export function NotifyWhenBackInStock({
   }
 
   return (
-    <div className="border-t border-border pt-5 sm:pt-6">
+    <div className="pt-2">
       <p className="text-sm text-muted-foreground mb-3">
         Expected back in stock around{" "}
         <span className="text-foreground font-medium">{etaLabel}</span>. Want an

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, type ReactNode } from "react";
 import { useCartStore } from "@/lib/cart-store";
 import { VariationPicker } from "./variation-picker";
 import { formatPrice } from "@/lib/format";
@@ -14,9 +14,14 @@ import { storeConfig } from "../../store.config";
 interface Props {
   product: Product;
   attributes?: WCAttribute[];
+  /**
+   * Optional content rendered between the cart button and the payment-method
+   * icons. Used to inject the "notify me when back in stock" form on OOS PDPs.
+   */
+  belowButton?: ReactNode;
 }
 
-export function AddToCartButton({ product, attributes }: Props) {
+export function AddToCartButton({ product, attributes, belowButton }: Props) {
   const addItem = useCartStore((s) => s.addItem);
   const [selectedVariation, setSelectedVariation] = useState<ProductVariation | null>(null);
   const [added, setAdded] = useState(false);
@@ -165,6 +170,8 @@ export function AddToCartButton({ product, attributes }: Props) {
       {stockError && (
         <p className="text-sm text-destructive">Sorry, this item is now out of stock.</p>
       )}
+
+      {belowButton}
 
       {/* Payment methods */}
       <div className="flex items-center gap-3 pt-1">

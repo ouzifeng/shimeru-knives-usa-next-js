@@ -343,6 +343,15 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               <AddToCartButton
                 product={product}
                 attributes={attributes.length ? attributes : undefined}
+                belowButton={
+                  product.stock_status === "outofstock" && restockEtaLabel ? (
+                    <NotifyWhenBackInStock
+                      productId={product.id}
+                      productName={product.name}
+                      etaLabel={restockEtaLabel}
+                    />
+                  ) : null
+                }
               />
             </div>
 
@@ -351,14 +360,6 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 products={inStockAlternatives}
                 categorySlug={product.categories?.[0]?.slug}
                 categoryName={product.categories?.[0]?.name}
-              />
-            )}
-
-            {product.stock_status === "outofstock" && restockEtaLabel && (
-              <NotifyWhenBackInStock
-                productId={product.id}
-                productName={product.name}
-                etaLabel={restockEtaLabel}
               />
             )}
 
