@@ -216,12 +216,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       : Promise.resolve(null),
   ]);
 
-  const restockEtaLabel = restockEta
-    ? restockEta.toLocaleDateString(storeConfig.locale, {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })
+  const restockEtaDays = restockEta
+    ? Math.max(1, Math.ceil((restockEta.getTime() - Date.now()) / 86_400_000))
     : null;
 
   const isVariable = product.type === "variable";
@@ -344,11 +340,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 product={product}
                 attributes={attributes.length ? attributes : undefined}
                 belowButton={
-                  product.stock_status === "outofstock" && restockEtaLabel ? (
+                  product.stock_status === "outofstock" && restockEtaDays !== null ? (
                     <NotifyWhenBackInStock
                       productId={product.id}
                       productName={product.name}
-                      etaLabel={restockEtaLabel}
+                      etaDays={restockEtaDays}
                     />
                   ) : null
                 }

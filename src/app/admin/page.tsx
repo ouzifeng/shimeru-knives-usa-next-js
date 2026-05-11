@@ -32,6 +32,7 @@ import {
   RotateCcw,
   ShieldAlert,
   MessageSquare,
+  BellRing,
 } from "lucide-react";
 
 /** Get current date/time parts in America/New_York timezone */
@@ -1388,7 +1389,173 @@ function ProductsTab() {
   );
 }
 
-const ADMIN_TABS = ["dashboard", "orders", "products", "inventory", "supplier-prices", "funnel", "returns"] as const;
+interface StockNotification {
+  id: number;
+  product_id: number;
+  product_name: string;
+  product_slug: string;
+  email: string;
+  created_at: string;
+  notified_at: string | null;
+  unsubscribed_at: string | null;
+}
+
+function WaitingStockTab() {
+  const [rows, setRows] = useState<StockNotification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/stock-notifications")
+      .then((res) => res.json())
+      .then((data: StockNotification[]) => setRows(Array.isArray(data) ? data : []))
+      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" />
+        Loading waiting stock subscribers...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-md py-16">
+        <div className="flex items-start gap-2 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-600">
+          <AlertCircle className="mt-0.5 size-4 shrink-0" />
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  const pending = rows.filter((r) => r.notified_at === null && r.unsubscribed_at === null);
+  const sent = rows.filter((r) => r.notified_at !== null);
+
+  // Aggregate: subscribers per product (pending only)
+  const perProduct = new Map<string, { product_name: string; product_slug: string; count: number }>();
+  for (const r of pending) {
+    const key = String(r.product_id);
+    const existing = perProduct.get(key);
+    if (existing) existing.count++;
+    else perProduct.set(key, { product_name: r.product_name, product_slug: r.product_slug, count: 1 });
+  }
+  const productSummary = [...perProduct.values()].sort((a, b) => b.count - a.count);
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-xl border bg-card p-5 shadow-sm">
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <BellRing className="size-3.5" />
+            <span className="text-xs font-medium">Pending</span>
+          </div>
+          <p className="mt-1.5 text-2xl font-semibold tracking-tight">{pending.length}</p>
+        </div>
+        <div className="rounded-xl border bg-card p-5 shadow-sm">
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <CheckCircle2 className="size-3.5" />
+            <span className="text-xs font-medium">Notified</span>
+          </div>
+          <p className="mt-1.5 text-2xl font-semibold tracking-tight">{sent.length}</p>
+        </div>
+        <div className="rounded-xl border bg-card p-5 shadow-sm">
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Package className="size-3.5" />
+            <span className="text-xs font-medium">Products waiting</span>
+          </div>
+          <p className="mt-1.5 text-2xl font-semibold tracking-tight">{productSummary.length}</p>
+        </div>
+      </div>
+
+      {productSummary.length > 0 && (
+        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+          <div className="px-5 py-3 border-b bg-muted/30">
+            <h3 className="text-sm font-medium">By product (pending only)</h3>
+          </div>
+          <table className="w-full text-sm">
+            <thead className="text-left text-xs text-muted-foreground border-b">
+              <tr>
+                <th className="px-5 py-2 font-medium">Product</th>
+                <th className="px-5 py-2 font-medium text-right">Subscribers</th>
+              </tr>
+            </thead>
+            <tbody>
+              {productSummary.map((p) => (
+                <tr key={p.product_slug} className="border-b last:border-0">
+                  <td className="px-5 py-2.5">
+                    <a href={`/product/${p.product_slug}`} target="_blank" rel="noreferrer" className="hover:underline inline-flex items-center gap-1">
+                      {p.product_name}
+                      <ExternalLink className="size-3" />
+                    </a>
+                  </td>
+                  <td className="px-5 py-2.5 text-right font-medium">{p.count}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+        <div className="px-5 py-3 border-b bg-muted/30">
+          <h3 className="text-sm font-medium">All subscriptions</h3>
+        </div>
+        {rows.length === 0 ? (
+          <div className="px-5 py-12 text-center text-sm text-muted-foreground">
+            No back-in-stock subscriptions yet.
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="text-left text-xs text-muted-foreground border-b">
+              <tr>
+                <th className="px-5 py-2 font-medium">Email</th>
+                <th className="px-5 py-2 font-medium">Product</th>
+                <th className="px-5 py-2 font-medium">Signed up</th>
+                <th className="px-5 py-2 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id} className="border-b last:border-0">
+                  <td className="px-5 py-2.5">{r.email}</td>
+                  <td className="px-5 py-2.5">
+                    <a href={`/product/${r.product_slug}`} target="_blank" rel="noreferrer" className="hover:underline inline-flex items-center gap-1">
+                      {r.product_name}
+                      <ExternalLink className="size-3" />
+                    </a>
+                  </td>
+                  <td className="px-5 py-2.5 text-muted-foreground">{timeAgo(r.created_at)}</td>
+                  <td className="px-5 py-2.5">
+                    {r.unsubscribed_at ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs">
+                        <Ban className="size-3" /> Unsubscribed
+                      </span>
+                    ) : r.notified_at ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-xs">
+                        <CheckCircle2 className="size-3" /> Notified {timeAgo(r.notified_at)}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-xs">
+                        <BellRing className="size-3" /> Waiting
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const ADMIN_TABS = ["dashboard", "orders", "products", "inventory", "supplier-prices", "funnel", "returns", "waiting-stock"] as const;
 type AdminTab = (typeof ADMIN_TABS)[number];
 
 function AdminPageInner() {
@@ -1901,6 +2068,19 @@ function AdminPageInner() {
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />
             )}
           </button>
+          <button
+            onClick={() => setActiveTab("waiting-stock")}
+            className={`px-4 py-2 text-sm font-medium transition-colors relative ${
+              activeTab === "waiting-stock"
+                ? "text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Waiting Stock
+            {activeTab === "waiting-stock" && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />
+            )}
+          </button>
         </div>
       </div>
 
@@ -1910,6 +2090,7 @@ function AdminPageInner() {
       {activeTab === "supplier-prices" && <SupplierPricesTab />}
       {activeTab === "funnel" && <FunnelTab />}
       {activeTab === "returns" && <ReturnsTab />}
+      {activeTab === "waiting-stock" && <WaitingStockTab />}
 
       {activeTab === "dashboard" && <>
       {/* Connection Cards */}

@@ -2,14 +2,19 @@
 
 import { useState, type FormEvent } from "react";
 
+function formatEtaDays(days: number): string {
+  if (days <= 1) return "tomorrow";
+  return `in around ${days} days`;
+}
+
 export function NotifyWhenBackInStock({
   productId,
   productName,
-  etaLabel,
+  etaDays,
 }: {
   productId: number;
   productName: string;
-  etaLabel: string;
+  etaDays: number;
 }) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
@@ -56,8 +61,8 @@ export function NotifyWhenBackInStock({
   return (
     <div className="pt-2">
       <p className="text-sm text-muted-foreground mb-3">
-        Expected back in stock around{" "}
-        <span className="text-foreground font-medium">{etaLabel}</span>. Want an
+        Expected back in stock{" "}
+        <span className="text-foreground font-medium">{formatEtaDays(etaDays)}</span>. Want an
         email when it arrives?
       </p>
       <form onSubmit={onSubmit} className="flex gap-2">
