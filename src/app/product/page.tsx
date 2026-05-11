@@ -5,8 +5,14 @@ import { ProductCard } from "@/components/product-card";
 export const revalidate = 3600;
 import { ProductFilters, MobileFilters } from "@/components/product-filters";
 import { KnifeGuideCta } from "@/components/knife-guide-cta";
+import {
+  CategoryFaq,
+  CategorySeoBody,
+  CategoryIntroDisclosure,
+} from "@/components/category-faq";
 import { Pagination } from "@/components/pagination";
 import { storeConfig } from "../../../store.config";
+import { CATEGORY_SEO, ALL_PRODUCTS_SEO } from "@/content/category-seo";
 import type { ProductFilter } from "@/lib/types";
 
 interface Props {
@@ -19,12 +25,20 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const search = params.search;
   const page = params.page ? parseInt(params.page) : 1;
 
-  let title = `Japanese Kitchen Knives | ${storeConfig.name}`;
-  let description = `Browse our full collection of Japanese chef knives. ${storeConfig.description}`;
+  // Default = all-products SEO. Override per-category if we have hand-written
+  // copy in CATEGORY_SEO; otherwise fall back to a slug-derived title.
+  let title = ALL_PRODUCTS_SEO.title;
+  let description = ALL_PRODUCTS_SEO.description;
   if (category) {
-    const catName = category.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-    title = `${catName} Knives | ${storeConfig.name}`;
-    description = `Shop ${catName} knives at ${storeConfig.name}. ${storeConfig.description}`;
+    const seo = CATEGORY_SEO[category];
+    if (seo) {
+      title = seo.title;
+      description = seo.description;
+    } else {
+      const catName = category.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      title = `${catName} Knives | ${storeConfig.name}`;
+      description = `Shop ${catName} knives at ${storeConfig.name}. ${storeConfig.description}`;
+    }
   }
   if (search) {
     title = `Search: ${search} | ${storeConfig.name}`;
@@ -134,6 +148,15 @@ export default async function ProductsPage({ searchParams }: Props) {
   const catName = category
     ? category.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
     : null;
+  // Hand-written SEO content for this category (or the all-products default
+  // when no category filter is applied). Null when this is a search results
+  // page or an unknown category — in that case we skip the SEO blocks.
+  const seoContent = params.search
+    ? null
+    : category
+      ? CATEGORY_SEO[category] ?? null
+      : ALL_PRODUCTS_SEO;
+  const headingText = seoContent?.h1 ?? (catName ? `${catName} Knives` : "All Knives");
 
   return (
     <>
@@ -151,8 +174,14 @@ export default async function ProductsPage({ searchParams }: Props) {
             {catName ? "Collection" : "Shop"}
           </p>
           <h1 className="font-serif text-4xl lg:text-5xl font-light">
-            {catName ? `${catName} Knives` : "All Knives"}
+            {headingText}
           </h1>
+          {seoContent && (
+            <CategoryIntroDisclosure
+              label={seoContent.disclosureLabel}
+              intro={seoContent.intro}
+            />
+          )}
           {params.search && (
             <p className="text-sm text-muted-foreground mt-2">
               Showing results for &ldquo;{params.search}&rdquo;
@@ -187,7 +216,9 @@ export default async function ProductsPage({ searchParams }: Props) {
         </div>
       </div>
 
+      {seoContent && <CategorySeoBody body={seoContent.seoBody} />}
       <KnifeGuideCta />
+      {seoContent && <CategoryFaq faqs={seoContent.faqs} />}
     </>
   );
 }
