@@ -208,7 +208,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     getRelatedProducts(product.id, product.categories?.[0]?.slug),
     getProductSpecs(product.id),
     product.stock_status === "outofstock"
-      ? getInStockAlternatives(product.id, product.categories?.[0]?.slug, 4)
+      ? getInStockAlternatives(product.id, product.categories?.[0]?.slug, 6)
       : Promise.resolve([]),
   ]);
 

@@ -330,7 +330,7 @@ export async function getProductSpecs(productId: number): Promise<ProductSpecs |
 export async function getInStockAlternatives(
   productId: number,
   categorySlug?: string,
-  limit = 4
+  limit = 6
 ): Promise<Product[]> {
   if (!categorySlug) return [];
 
@@ -342,15 +342,56 @@ export async function getInStockAlternatives(
   const ids = (catProducts?.map((r) => r.product_id) || []).filter((id) => id !== productId);
   if (ids.length === 0) return [];
 
-  const { data } = await supabase
+  // Pull a wider candidate pool than `limit` so sales-ranking can do meaningful work.
+  const { data: candidates } = await supabase
     .from("products")
     .select("*")
     .in("id", ids)
     .eq("status", "publish")
     .eq("stock_status", "instock")
-    .limit(limit);
+    .limit(Math.max(limit * 3, 12));
 
-  return (data as Product[]) || [];
+  const pool = (candidates as Product[]) || [];
+  if (pool.length <= 1) return pool.slice(0, limit);
+
+  const candidateIds = pool.map((p) => p.id);
+
+  // Variation -> parent product map, so variant sales count toward the parent.
+  const { data: variations } = await supabase
+    .from("product_variations")
+    .select("id, product_id")
+    .in("product_id", candidateIds);
+  const vidToPid = new Map<number, number>(
+    (variations || []).map((v) => [v.id as number, v.product_id as number])
+  );
+
+  // Last 30 days of paid orders.
+  const cutoff = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  const { data: orders } = await supabase
+    .from("orders")
+    .select("line_items")
+    .gte("created_at", cutoff)
+    .in("status", ["completed", "processing"]);
+
+  const candidateSet = new Set(candidateIds);
+  const sales = new Map<number, number>();
+  for (const o of orders || []) {
+    const items = Array.isArray(o.line_items) ? o.line_items : [];
+    for (const it of items) {
+      let pid: number | undefined = typeof it?.pid === "number" ? it.pid : undefined;
+      if (!pid && typeof it?.vid === "number") pid = vidToPid.get(it.vid);
+      if (pid && candidateSet.has(pid)) {
+        sales.set(pid, (sales.get(pid) ?? 0) + (Number(it?.qty) || 0));
+      }
+    }
+  }
+
+  pool.sort((a, b) => {
+    const diff = (sales.get(b.id) ?? 0) - (sales.get(a.id) ?? 0);
+    return diff !== 0 ? diff : b.id - a.id;
+  });
+
+  return pool.slice(0, limit);
 }
 
 export async function getRelatedProducts(productId: number, categorySlug?: string): Promise<Product[]> {
