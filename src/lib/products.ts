@@ -327,6 +327,32 @@ export async function getProductSpecs(productId: number): Promise<ProductSpecs |
   return data as ProductSpecs | null;
 }
 
+export async function getInStockAlternatives(
+  productId: number,
+  categorySlug?: string,
+  limit = 4
+): Promise<Product[]> {
+  if (!categorySlug) return [];
+
+  const { data: catProducts } = await supabase
+    .from("product_categories")
+    .select("product_id")
+    .eq("category_slug", categorySlug);
+
+  const ids = (catProducts?.map((r) => r.product_id) || []).filter((id) => id !== productId);
+  if (ids.length === 0) return [];
+
+  const { data } = await supabase
+    .from("products")
+    .select("*")
+    .in("id", ids)
+    .eq("status", "publish")
+    .eq("stock_status", "instock")
+    .limit(limit);
+
+  return (data as Product[]) || [];
+}
+
 export async function getRelatedProducts(productId: number, categorySlug?: string): Promise<Product[]> {
   let related: Product[] = [];
 

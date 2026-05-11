@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getProductBySlug, getProductAttributes, getProductSeo, getRelatedProducts, getProductSpecs } from "@/lib/products";
+import { getProductBySlug, getProductAttributes, getProductSeo, getRelatedProducts, getProductSpecs, getInStockAlternatives } from "@/lib/products";
 
 export const revalidate = 3600;
 import { ProductSpecsGrid } from "@/components/product-specs";
@@ -19,6 +19,7 @@ import { KnifeGuideCta } from "@/components/knife-guide-cta";
 import { ViewContentTracker } from "@/components/view-content-tracker";
 import { RecentlyViewedTracker } from "@/components/recently-viewed-tracker";
 import { RecentlyViewed } from "@/components/recently-viewed";
+import { InStockAlternatives } from "@/components/in-stock-alternatives";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -201,11 +202,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const [attributes, seo, relatedProducts, specs] = await Promise.all([
+  const [attributes, seo, relatedProducts, specs, inStockAlternatives] = await Promise.all([
     product.type === "variable" ? getProductAttributes(product.id) : Promise.resolve([]),
     getProductSeo(product.id),
     getRelatedProducts(product.id, product.categories?.[0]?.slug),
     getProductSpecs(product.id),
+    product.stock_status === "outofstock"
+      ? getInStockAlternatives(product.id, product.categories?.[0]?.slug, 4)
+      : Promise.resolve([]),
   ]);
 
   const isVariable = product.type === "variable";
@@ -329,6 +333,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 attributes={attributes.length ? attributes : undefined}
               />
             </div>
+
+            {product.stock_status === "outofstock" && (
+              <InStockAlternatives
+                products={inStockAlternatives}
+                categorySlug={product.categories?.[0]?.slug}
+                categoryName={product.categories?.[0]?.name}
+              />
+            )}
 
             {/* Knife specs */}
             {specs && (
