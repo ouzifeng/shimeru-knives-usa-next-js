@@ -1,6 +1,7 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import type { SyncState, WCShippingMethod, WCShippingZone } from "@/lib/types";
@@ -1387,8 +1388,23 @@ function ProductsTab() {
   );
 }
 
-export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "orders" | "products" | "inventory" | "supplier-prices" | "funnel" | "returns">("dashboard");
+const ADMIN_TABS = ["dashboard", "orders", "products", "inventory", "supplier-prices", "funnel", "returns"] as const;
+type AdminTab = (typeof ADMIN_TABS)[number];
+
+function AdminPageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const activeTab: AdminTab = (ADMIN_TABS as readonly string[]).includes(tabParam ?? "")
+    ? (tabParam as AdminTab)
+    : "dashboard";
+  const setActiveTab = useCallback((tab: AdminTab) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === "dashboard") params.delete("tab");
+    else params.set("tab", tab);
+    const qs = params.toString();
+    router.replace(qs ? `/admin?${qs}` : "/admin", { scroll: false });
+  }, [router, searchParams]);
   const [syncState, setSyncState] = useState<SyncState | null>(null);
   const [productCount, setProductCount] = useState<number>(0);
   const [syncing, setSyncing] = useState(false);
@@ -2670,5 +2686,13 @@ export default function AdminPage() {
       </div>
       </>}
     </div>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminPageInner />
+    </Suspense>
   );
 }
