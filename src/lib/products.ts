@@ -394,6 +394,62 @@ export async function getInStockAlternatives(
   return pool.slice(0, limit);
 }
 
+/**
+ * Earliest restock date for a product, derived from open POs covering its SKU(s).
+ *  - Shipped PO  → use `expected_arrival` from that PO
+ *  - Created PO  → use today + 60 days as a placeholder
+ *  - No open PO  → null (caller should hide the notify-me UI entirely)
+ */
+const CREATED_PO_FALLBACK_DAYS = 60;
+
+export async function getRestockEta(productId: number): Promise<Date | null> {
+  const { data: product } = await supabase
+    .from("products")
+    .select("type, sku")
+    .eq("id", productId)
+    .single();
+  if (!product) return null;
+
+  let skus: string[] = [];
+  if (product.type === "variable") {
+    const { data: vars } = await supabase
+      .from("product_variations")
+      .select("sku")
+      .eq("product_id", productId);
+    skus = (vars || []).map((v) => v.sku as string).filter(Boolean);
+  } else if (product.sku) {
+    skus = [product.sku];
+  }
+  if (skus.length === 0) return null;
+
+  const { data: lines } = await supabase
+    .from("purchase_order_lines")
+    .select("sku, purchase_orders!inner(status, expected_arrival)")
+    .in("sku", skus)
+    .in("purchase_orders.status", ["created", "shipped"]);
+
+  if (!lines || lines.length === 0) return null;
+
+  const now = Date.now();
+  let earliest: number | null = null;
+  for (const line of lines as unknown as Array<{
+    purchase_orders: { status: string; expected_arrival: string | null } | null;
+  }>) {
+    const po = line.purchase_orders;
+    if (!po) continue;
+    let etaMs: number;
+    if (po.status === "shipped" && po.expected_arrival) {
+      etaMs = new Date(po.expected_arrival).getTime();
+    } else if (po.status === "created") {
+      etaMs = now + CREATED_PO_FALLBACK_DAYS * 86_400_000;
+    } else {
+      continue;
+    }
+    if (earliest === null || etaMs < earliest) earliest = etaMs;
+  }
+  return earliest === null ? null : new Date(earliest);
+}
+
 export async function getRelatedProducts(productId: number, categorySlug?: string): Promise<Product[]> {
   let related: Product[] = [];
 

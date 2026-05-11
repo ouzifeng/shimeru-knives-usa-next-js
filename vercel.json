@@ -7,6 +7,10 @@
     {
       "path": "/api/reorder-check",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/notify-back-in-stock",
+      "schedule": "0 */6 * * *"
     }
   ]
 }
