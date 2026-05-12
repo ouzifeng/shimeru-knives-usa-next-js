@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase, getSupabaseAdmin } from "./supabase";
 import { storeConfig } from "../../store.config";
 import type { Product, ProductFilter, WCAttribute } from "./types";
 
@@ -425,7 +425,7 @@ export async function getRestockEta(productId: number): Promise<Date | null> {
   }
   if (skus.length === 0) return null;
 
-  const { data: lines } = await supabase
+  const { data: lines } = await getSupabaseAdmin()
     .from("purchase_order_lines")
     .select("sku, purchase_orders!inner(status, expected_arrival)")
     .in("sku", skus)
