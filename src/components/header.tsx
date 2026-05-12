@@ -90,6 +90,7 @@ export function Header() {
               { href: "/product?category=santoku", label: "Santoku" },
               { href: "/product?category=nakiri", label: "Nakiri" },
               { href: "/product?category=kiritsuke", label: "Kiritsuke" },
+              { href: "/product?category=cleaver", label: "Cleaver" },
               { href: "/product?category=japanese-breadknife", label: "Bread Knife" },
               { href: "/product?category=knife-sets", label: "Knife Sets" },
               { href: "/product?on_sale=true", label: "Sale" },
