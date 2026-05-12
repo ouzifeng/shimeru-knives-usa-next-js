@@ -4,6 +4,7 @@ import { ProductCard } from "@/components/product-card";
 
 export const revalidate = 3600;
 import { ProductFilters, MobileFilters } from "@/components/product-filters";
+import { SortDropdown } from "@/components/sort-dropdown";
 import { KnifeGuideCta } from "@/components/knife-guide-cta";
 import {
   CategoryFaq,
@@ -198,11 +199,14 @@ export default async function ProductsPage({ searchParams }: Props) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-6 lg:mb-8 gap-4">
               <p className="text-base text-muted-foreground">{total} {total === 1 ? "knife" : "knives"}</p>
-              <MobileFilters options={filterOptions} />
+              <div className="flex items-center gap-3">
+                <SortDropdown />
+                <MobileFilters options={filterOptions} />
+              </div>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
+              {products.map((product, i) => (
+                <ProductCard key={product.id} product={product} priority={i < 6} />
               ))}
             </div>
             <Pagination total={total} perPage={24} currentPage={filters.page || 1} />

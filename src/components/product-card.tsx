@@ -5,7 +5,10 @@ import { formatPrice } from "@/lib/format";
 import { StarRating } from "./star-rating";
 import { storeConfig } from "../../store.config";
 
-export function ProductCard({ product }: { product: Product }) {
+const BLUR_PLACEHOLDER =
+  "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AJVAH/9k=";
+
+export function ProductCard({ product, priority = false }: { product: Product; priority?: boolean }) {
   return (
     <Link href={`/product/${product.slug}`} className="group block">
       {product.images[0] && (
@@ -15,7 +18,9 @@ export function ProductCard({ product }: { product: Product }) {
             alt={product.images[0].alt || product.name}
             fill
             sizes="(max-width: 768px) 50vw, 25vw"
-            loading="lazy"
+            {...(priority ? { priority: true } : { loading: "lazy" })}
+            placeholder="blur"
+            blurDataURL={BLUR_PLACEHOLDER}
             className="object-cover group-hover:scale-[1.03] transition-transform duration-500 ease-out"
           />
           {product.stock_status === "outofstock" && (

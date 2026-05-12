@@ -91,6 +91,9 @@ export async function queryProducts(filters: ProductFilter = {}): Promise<{
     case "name":
       query = query.order("name", { ascending: true });
       break;
+    case "popularity":
+      query = query.order("units_sold_90d", { ascending: false, nullsFirst: false });
+      break;
     case "newest":
     default:
       query = query.order("wc_updated_at", { ascending: false });

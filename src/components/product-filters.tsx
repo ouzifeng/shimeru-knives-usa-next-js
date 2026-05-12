@@ -150,27 +150,6 @@ function FilterContent({ options, onNavigate }: { options: FilterOptions; onNavi
         </div>
       ))}
 
-      {/* Sort */}
-      <div>
-        <h3 className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-3">Sort By</h3>
-        <div className="space-y-0.5">
-          {[
-            { value: "newest", label: "Newest" },
-            { value: "price_asc", label: "Price: Low to High" },
-            { value: "price_desc", label: "Price: High to Low" },
-            { value: "name", label: "Name" },
-          ].map((option) => (
-            <button
-              key={option.value}
-              className={`text-sm block w-full text-left px-3 py-2.5 min-h-[44px] flex items-center transition-colors ${(searchParams.get("sort") || "newest") === option.value ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"}`}
-              onClick={() => updateFilter("sort", option.value === "newest" ? null : option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Clear */}
       {hasFilters && (
         <button

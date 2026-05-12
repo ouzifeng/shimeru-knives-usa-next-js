@@ -180,7 +180,7 @@ export interface ProductFilter {
   on_sale?: boolean;
   attributes?: Record<string, string[]>;
   tags?: Record<string, string[]>;
-  sort?: "price_asc" | "price_desc" | "name" | "newest";
+  sort?: "price_asc" | "price_desc" | "name" | "newest" | "popularity";
   page?: number;
   per_page?: number;
 }
