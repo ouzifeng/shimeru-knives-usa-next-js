@@ -35,7 +35,7 @@ export default function KnifeCarePage() {
           <h2 className="text-base font-medium text-foreground mb-2">Step 2 — Dry</h2>
           <p>
             Towel dry immediately after washing. Don&apos;t leave it wet or sitting in the sink —
-            even stainless steel can develop spots or discolouration if left damp. A quick wipe with
+            even stainless steel can develop spots or discoloration if left damp. A quick wipe with
             a clean cloth is all it takes.
           </p>
         </section>

@@ -117,7 +117,7 @@ function getRecommendation(answers: Record<string, string>): KnifeRecommendation
       categorySlug: "nakiri",
       description:
         "Japan's dedicated vegetable knife. The perfectly flat edge makes full contact with the cutting board for clean, effortless cuts through any produce.",
-      why: "Nothing cuts vegetables like a Nakiri — the flat blade means every millimetre makes contact for perfect julienne, brunoise, and rough chops.",
+      why: "Nothing cuts vegetables like a Nakiri — the flat blade means every millimeter makes contact for perfect julienne, brunoise, and rough chops.",
       alsoConsider: { name: "Bunka", slug: "bunka", reason: "If you want a pointed tip for detail work too" },
     };
   }
