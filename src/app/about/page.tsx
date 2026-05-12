@@ -90,17 +90,6 @@ export default function AboutPage() {
         <div className="grid sm:grid-cols-2 gap-6">
           <div>
             <p className="text-xs tracking-[0.2em] uppercase text-foreground/50 mb-2">
-              UK Correspondence
-            </p>
-            <p>
-              Shimeru Knives<br />
-              Kemp House, 152–160 City Road<br />
-              London, EC1V 2NX<br />
-              United Kingdom
-            </p>
-          </div>
-          <div>
-            <p className="text-xs tracking-[0.2em] uppercase text-foreground/50 mb-2">
               US Address
             </p>
             <p>
@@ -108,6 +97,17 @@ export default function AboutPage() {
               1115 Hosler Dr<br />
               Bolingbrook, IL 60490<br />
               United States
+            </p>
+          </div>
+          <div>
+            <p className="text-xs tracking-[0.2em] uppercase text-foreground/50 mb-2">
+              UK Address
+            </p>
+            <p>
+              Shimeru Knives<br />
+              Kemp House, 152–160 City Road<br />
+              London, EC1V 2NX<br />
+              United Kingdom
             </p>
           </div>
         </div>
