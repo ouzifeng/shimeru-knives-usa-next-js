@@ -178,7 +178,7 @@ export function AddToCartButton({ product, attributes, belowButton }: Props) {
         <span className="text-xs text-muted-foreground">Pay with</span>
         <img src="/payments/klarna.png" alt="Klarna" className="h-6 w-auto" />
         <img src="/payments/paypal.png" alt="PayPal" className="h-5 w-auto" />
-        <img src="/payments/clearpay.png" alt="Clearpay" className="h-5 w-auto" />
+        <img src="/payments/afterpay.png" alt="Afterpay" className="h-5 w-auto" />
       </div>
     </div>
   );

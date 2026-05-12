@@ -2,7 +2,7 @@ const faqs = [
   {
     question: "Do You Offer Payment Terms?",
     answer:
-      "Yes, we offer PayPal Pay Later, Klarna and Clearpay, both of whom offer a range of buy now pay later options.\n\nJust choose PayPal Pay Later, Klarna or Clearpay as a payment method at checkout.",
+      "Yes, we offer PayPal Pay Later, Klarna and Afterpay, both of whom offer a range of buy now pay later options.\n\nJust choose PayPal Pay Later, Klarna or Afterpay as a payment method at checkout.",
   },
   {
     question: "Do Your Knives Come With Boxes?",

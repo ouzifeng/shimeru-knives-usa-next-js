@@ -101,10 +101,10 @@ export default function AboutPage() {
           </div>
           <div>
             <p className="text-xs tracking-[0.2em] uppercase text-foreground/50 mb-2">
-              US Fulfillment
+              US Address
             </p>
             <p>
-              InSync Fulfillment C/O Shimeru Knives<br />
+              Shimeru Knives<br />
               1115 Hosler Dr<br />
               Bolingbrook, IL 60490<br />
               United States

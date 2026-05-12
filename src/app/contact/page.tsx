@@ -64,10 +64,10 @@ export default function ContactPage() {
           </div>
           <div>
             <p className="text-[11px] tracking-[0.2em] uppercase text-muted-foreground mb-2">
-              US Fulfillment
+              US Address
             </p>
             <p className="text-sm text-foreground/80">
-              InSync Fulfillment C/O Shimeru Knives<br />
+              Shimeru Knives<br />
               1115 Hosler Dr<br />
               Bolingbrook, IL 60490<br />
               United States
