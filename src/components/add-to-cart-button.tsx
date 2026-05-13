@@ -40,7 +40,12 @@ function isBusinessDay(date: Date): boolean {
   return !US_HOLIDAYS.has(iso);
 }
 
-function getEstimatedDelivery(): { from: string; to: string } {
+interface DeliveryRange {
+  from: string;
+  to: string;
+}
+
+function getEstimatedDelivery(): { standard: DeliveryRange; express: DeliveryRange } {
   const now = new Date();
 
   // Cutoff: 1pm Central Time (Illinois fulfillment warehouse).
@@ -66,9 +71,8 @@ function getEstimatedDelivery(): { from: string; to: string } {
     dispatchDay.setDate(dispatchDay.getDate() + 1);
   }
 
-  // Delivery range spans the fastest express transit (1 business day)
-  // through the slowest standard transit (5 business days) — covers both
-  // shipping options offered at checkout.
+  // Standard: 3-5 business days. Express: 1-3 business days. Both match
+  // the transit windows on /shipping-and-delivery and Merchant Center.
   const addBusinessDays = (date: Date, days: number) => {
     const result = new Date(date);
     let added = 0;
@@ -81,13 +85,19 @@ function getEstimatedDelivery(): { from: string; to: string } {
     return result;
   };
 
-  const from = addBusinessDays(dispatchDay, 1);
-  const to = addBusinessDays(dispatchDay, 5);
-
   const fmt = (d: Date) =>
-    d.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
+    d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 
-  return { from: fmt(from), to: fmt(to) };
+  return {
+    standard: {
+      from: fmt(addBusinessDays(dispatchDay, 3)),
+      to: fmt(addBusinessDays(dispatchDay, 5)),
+    },
+    express: {
+      from: fmt(addBusinessDays(dispatchDay, 1)),
+      to: fmt(addBusinessDays(dispatchDay, 3)),
+    },
+  };
 }
 
 export function AddToCartButton({ product, attributes, belowButton }: Props) {
@@ -190,12 +200,19 @@ export function AddToCartButton({ product, attributes, belowButton }: Props) {
         </div>
       )}
 
-      {/* Estimated delivery */}
+      {/* Estimated delivery — split by shipping option to match checkout */}
       {canAdd && (
-        <div className="text-base text-muted-foreground">
-          <span className="text-foreground font-medium">Free shipping</span>
-          <span className="mx-1.5">·</span>
-          Est. delivery {delivery.from} – {delivery.to}
+        <div className="text-sm text-muted-foreground space-y-1">
+          <div>
+            <span className="text-foreground font-medium">Free shipping</span>
+            <span className="mx-1.5">·</span>
+            Arrives {delivery.standard.from} – {delivery.standard.to}
+          </div>
+          <div>
+            <span className="text-foreground font-medium">Express ($5.99)</span>
+            <span className="mx-1.5">·</span>
+            Arrives {delivery.express.from} – {delivery.express.to}
+          </div>
         </div>
       )}
 
