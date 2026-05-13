@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, type ReactNode } from "react";
+import { useState, useCallback, useEffect, useMemo, type ReactNode } from "react";
 import { useCartStore } from "@/lib/cart-store";
 import { VariationPicker } from "./variation-picker";
 import { formatPrice } from "@/lib/format";
@@ -19,6 +19,74 @@ interface Props {
    * icons. Used to inject the "notify me when back in stock" form on OOS PDPs.
    */
   belowButton?: ReactNode;
+}
+
+// US federal holidays — update annually
+const US_HOLIDAYS: Set<string> = new Set([
+  // 2025
+  "2025-01-01", "2025-01-20", "2025-02-17", "2025-05-26",
+  "2025-06-19", "2025-07-04", "2025-09-01", "2025-10-13",
+  "2025-11-11", "2025-11-27", "2025-12-25",
+  // 2026
+  "2026-01-01", "2026-01-19", "2026-02-16", "2026-05-25",
+  "2026-06-19", "2026-07-03", "2026-09-07", "2026-10-12",
+  "2026-11-11", "2026-11-26", "2026-12-25",
+]);
+
+function isBusinessDay(date: Date): boolean {
+  const day = date.getDay();
+  if (day === 0 || day === 6) return false;
+  const iso = date.toISOString().slice(0, 10);
+  return !US_HOLIDAYS.has(iso);
+}
+
+function getEstimatedDelivery(): { from: string; to: string } {
+  const now = new Date();
+
+  // Cutoff: 1pm Central Time (Illinois fulfillment warehouse).
+  // Compute the current hour in Central Time so customers in every browser
+  // timezone see the same dispatch logic — and it matches the cutoff stated
+  // on /shipping-and-delivery and configured in Merchant Center.
+  const ctHour = parseInt(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Chicago",
+      hour: "numeric",
+      hour12: false,
+    }).format(now),
+    10,
+  );
+
+  const dispatchDay = new Date(now);
+  if (ctHour >= 13) {
+    dispatchDay.setDate(dispatchDay.getDate() + 1);
+  }
+
+  // Skip weekends and US federal holidays for dispatch
+  while (!isBusinessDay(dispatchDay)) {
+    dispatchDay.setDate(dispatchDay.getDate() + 1);
+  }
+
+  // Delivery: 3-5 business days after dispatch — matches the timeframe
+  // stated on /shipping-and-delivery and the Merchant Center transit window.
+  const addBusinessDays = (date: Date, days: number) => {
+    const result = new Date(date);
+    let added = 0;
+    while (added < days) {
+      result.setDate(result.getDate() + 1);
+      if (isBusinessDay(result)) {
+        added++;
+      }
+    }
+    return result;
+  };
+
+  const from = addBusinessDays(dispatchDay, 3);
+  const to = addBusinessDays(dispatchDay, 5);
+
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
+
+  return { from: fmt(from), to: fmt(to) };
 }
 
 export function AddToCartButton({ product, attributes, belowButton }: Props) {
@@ -98,6 +166,8 @@ export function AddToCartButton({ product, attributes, belowButton }: Props) {
   // Show variation picker only for multi-variation products
   const showPicker = isVariable && !isSingleVariation && attributes;
 
+  const delivery = useMemo(() => getEstimatedDelivery(), []);
+
   return (
     <div className="space-y-5">
       {showPicker && (
@@ -119,11 +189,12 @@ export function AddToCartButton({ product, attributes, belowButton }: Props) {
         </div>
       )}
 
-      {/* Free shipping indicator — specific delivery window lives on
-          /shipping-and-delivery to keep a single source of truth */}
+      {/* Estimated delivery */}
       {canAdd && (
         <div className="text-base text-muted-foreground">
           <span className="text-foreground font-medium">Free shipping</span>
+          <span className="mx-1.5">·</span>
+          Est. delivery {delivery.from} – {delivery.to}
         </div>
       )}
 
