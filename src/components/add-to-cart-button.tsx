@@ -66,8 +66,9 @@ function getEstimatedDelivery(): { from: string; to: string } {
     dispatchDay.setDate(dispatchDay.getDate() + 1);
   }
 
-  // Delivery: 3-5 business days after dispatch — matches the timeframe
-  // stated on /shipping-and-delivery and the Merchant Center transit window.
+  // Delivery range spans the fastest express transit (1 business day)
+  // through the slowest standard transit (5 business days) — covers both
+  // shipping options offered at checkout.
   const addBusinessDays = (date: Date, days: number) => {
     const result = new Date(date);
     let added = 0;
@@ -80,7 +81,7 @@ function getEstimatedDelivery(): { from: string; to: string } {
     return result;
   };
 
-  const from = addBusinessDays(dispatchDay, 3);
+  const from = addBusinessDays(dispatchDay, 1);
   const to = addBusinessDays(dispatchDay, 5);
 
   const fmt = (d: Date) =>
