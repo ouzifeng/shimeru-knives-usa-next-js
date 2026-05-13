@@ -1,6 +1,11 @@
 import { supabase, getSupabaseAdmin } from "./supabase";
 import { storeConfig } from "../../store.config";
+import { decodeEntities } from "./format";
 import type { Product, ProductFilter, WCAttribute } from "./types";
+
+function decodeProductName<T extends { name?: string | null }>(p: T): T {
+  return p?.name ? { ...p, name: decodeEntities(p.name) } : p;
+}
 
 export async function queryProducts(filters: ProductFilter = {}): Promise<{
   products: Product[];
@@ -111,7 +116,10 @@ export async function queryProducts(filters: ProductFilter = {}): Promise<{
   const { data, count, error } = await query;
   if (error) throw error;
 
-  return { products: (data as Product[]) || [], total: count || 0 };
+  return {
+    products: ((data as Product[]) || []).map(decodeProductName),
+    total: count || 0,
+  };
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
@@ -156,6 +164,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   }
 
   if (!product) return null;
+  product = decodeProductName(product);
 
   // Variable products don't track stock at the parent level — Woo holds
   // stock_quantity/stock_status on each variation. Roll the variations up
@@ -361,7 +370,7 @@ export async function getInStockAlternatives(
     .limit(Math.max(limit * 3, 12));
 
   const pool = (candidates as Product[]) || [];
-  if (pool.length <= 1) return pool.slice(0, limit);
+  if (pool.length <= 1) return pool.slice(0, limit).map(decodeProductName);
 
   const candidateIds = pool.map((p) => p.id);
 
@@ -400,7 +409,7 @@ export async function getInStockAlternatives(
     return diff !== 0 ? diff : b.id - a.id;
   });
 
-  return pool.slice(0, limit);
+  return pool.slice(0, limit).map(decodeProductName);
 }
 
 /**
@@ -496,7 +505,7 @@ export async function getRelatedProducts(productId: number, categorySlug?: strin
     related = [...related, ...((data as Product[]) || [])];
   }
 
-  return related;
+  return related.map(decodeProductName);
 }
 
 export async function getProductAttributes(productId: number): Promise<WCAttribute[]> {

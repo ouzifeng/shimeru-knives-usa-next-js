@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { decodeEntities } from "@/lib/format";
 
 const CACHE_HEADERS = { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" };
 const PRODUCT_FIELDS = "id, name, slug, price, sale_price, on_sale, images, stock_status";
+
+function decodeName<T extends { name?: string | null }>(r: T): T {
+  return r?.name ? { ...r, name: decodeEntities(r.name) } : r;
+}
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim();
@@ -19,7 +24,9 @@ export async function GET(req: NextRequest) {
   // Deduplicate categories
   const catMap = new Map<string, string>();
   catData?.forEach((r) => catMap.set(r.category_slug, r.category_name));
-  const categories = Array.from(catMap.entries()).slice(0, 3).map(([slug, name]) => ({ slug, name }));
+  const categories = Array.from(catMap.entries())
+    .slice(0, 3)
+    .map(([slug, name]) => ({ slug, name: decodeEntities(name) }));
 
   // Search products via FTS
   const { data } = await supabase
@@ -30,7 +37,7 @@ export async function GET(req: NextRequest) {
     .limit(6);
 
   if (data?.length) {
-    return NextResponse.json({ results: data, categories }, { headers: CACHE_HEADERS });
+    return NextResponse.json({ results: data.map(decodeName), categories }, { headers: CACHE_HEADERS });
   }
 
   // Fallback to ilike if FTS returns nothing
@@ -41,5 +48,5 @@ export async function GET(req: NextRequest) {
     .ilike("name", `%${q}%`)
     .limit(6);
 
-  return NextResponse.json({ results: fallback || [], categories }, { headers: CACHE_HEADERS });
+  return NextResponse.json({ results: (fallback || []).map(decodeName), categories }, { headers: CACHE_HEADERS });
 }
