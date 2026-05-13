@@ -80,6 +80,12 @@ export async function queryProducts(filters: ProductFilter = {}): Promise<{
     query = query.neq("stock_status", "outofstock");
   }
 
+  // Always prioritise in-stock items. Alphabetical ascending on
+  // stock_status conveniently orders "instock" < "onbackorder" < "outofstock",
+  // so sold-out items always fall to the bottom regardless of the user's
+  // chosen sort below.
+  query = query.order("stock_status", { ascending: true });
+
   // Sorting
   switch (filters.sort) {
     case "price_asc":
