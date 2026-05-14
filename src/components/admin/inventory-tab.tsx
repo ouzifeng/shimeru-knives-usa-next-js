@@ -82,6 +82,11 @@ interface POListItem {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function csvField(v: string | number): string {
+  const s = String(v);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
 function exportPOCsv(
   reference: string,
   lines: Array<{ sku: string; product_name: string; final_qty: number }>
@@ -95,6 +100,47 @@ function exportPOCsv(
   const a = document.createElement("a");
   a.href = url;
   a.download = `${reference}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Mintsoft ASN format — their importer requires the FULL template header row
+// even when most columns are blank. Only SKU / Quantity / Name are populated;
+// the rest can be edited inside Mintsoft after upload.
+const MINTSOFT_ASN_HEADER =
+  "SKU,Quantity,Name,EANBarcode,UPCBarcode,WeightInKG,Height,Length,Depth,DefaultLocation,CommodityCode,CountryOfManufacture,CustomsDescription,SSCCNumber";
+
+async function downloadMintsoftAsn(poId: number, reference: string) {
+  const res = await fetch(`/api/admin/inventory/purchase-orders/${poId}`);
+  if (!res.ok) {
+    alert("Failed to load PO lines for ASN export.");
+    return;
+  }
+  const detail = (await res.json()) as PODetail;
+  const totalCols = MINTSOFT_ASN_HEADER.split(",").length; // 14
+  const blanks = ",".repeat(totalCols - 3); // pad SKU/Qty/Name out to full width
+
+  // Mintsoft dedupes by SKU on import — pre-merge here so the CSV row count
+  // matches what actually lands in Mintsoft.
+  const merged = new Map<string, { sku: string; product_name: string; final_qty: number }>();
+  for (const l of detail.purchase_order_lines) {
+    const existing = merged.get(l.sku);
+    if (existing) {
+      existing.final_qty += l.final_qty;
+    } else {
+      merged.set(l.sku, { sku: l.sku, product_name: l.product_name, final_qty: l.final_qty });
+    }
+  }
+
+  const rows = Array.from(merged.values())
+    .map((l) => `${csvField(l.sku)},${l.final_qty},${csvField(l.product_name)}${blanks}`)
+    .join("\n");
+  const csv = MINTSOFT_ASN_HEADER + "\n" + rows + "\n";
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${reference}-mintsoft-asn.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -360,7 +406,7 @@ function PODetailPanel({
   if (loading) {
     return (
       <tr>
-        <td colSpan={6} className="px-4 py-6 text-center">
+        <td colSpan={7} className="px-4 py-6 text-center">
           <Loader2 className="mx-auto size-4 animate-spin text-muted-foreground" />
         </td>
       </tr>
@@ -370,7 +416,7 @@ function PODetailPanel({
   if (!detail) {
     return (
       <tr>
-        <td colSpan={6} className="px-4 py-4 text-center text-sm text-muted-foreground">
+        <td colSpan={7} className="px-4 py-4 text-center text-sm text-muted-foreground">
           {error ?? "PO not found."}
         </td>
       </tr>
@@ -383,7 +429,7 @@ function PODetailPanel({
 
   return (
     <tr>
-      <td colSpan={6} className="bg-muted/30 px-4 py-4">
+      <td colSpan={7} className="bg-muted/30 px-4 py-4">
         <div className="space-y-4">
           {/* Line items */}
           <div className="overflow-x-auto rounded border bg-background">
@@ -620,19 +666,20 @@ function PurchaseOrdersSection({ initialPOs }: { initialPOs: PendingPO[] }) {
               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Expected Arrival</th>
               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Tracking</th>
               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Created</th>
+              <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">ASN</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {loadingPOs && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center">
+                <td colSpan={7} className="px-4 py-6 text-center">
                   <Loader2 className="mx-auto size-4 animate-spin text-muted-foreground" />
                 </td>
               </tr>
             )}
             {!loadingPOs && displayPOs.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-sm text-muted-foreground">
+                <td colSpan={7} className="px-4 py-6 text-center text-sm text-muted-foreground">
                   No purchase orders yet.
                 </td>
               </tr>
@@ -674,6 +721,16 @@ function PurchaseOrdersSection({ initialPOs }: { initialPOs: PendingPO[] }) {
                       )}
                     </td>
                     <td className="px-4 py-2">{formatDate(po.created_at)}</td>
+                    <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => downloadMintsoftAsn(po.id, po.reference)}
+                      >
+                        Mintsoft CSV
+                      </Button>
+                    </td>
                   </tr>
                   {expandedId === po.id && (
                     <PODetailPanel
