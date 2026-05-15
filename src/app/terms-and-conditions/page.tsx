@@ -41,8 +41,8 @@ export default function TermsPage() {
             </li>
             <li>
               <strong>Payment Methods:</strong> We accept payments via major credit cards, Apple
-              Pay, Google Pay, and PayPal (including PayPal Pay in 4). All payment processing is
-              handled securely through Stripe.
+              Pay, Google Pay, and PayPal. All payment processing is handled securely through
+              Stripe.
             </li>
             <li>
               <strong>Taxes and Fees:</strong> Sales tax may apply depending on your state.

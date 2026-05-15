@@ -1,10 +1,5 @@
 const faqs = [
   {
-    question: "Do You Offer Payment Terms?",
-    answer:
-      "Yes, we offer PayPal Pay in 4, which lets you split your purchase into 4 interest-free payments over 6 weeks.\n\nJust choose PayPal at checkout and select 'Pay Later'.",
-  },
-  {
     question: "Do Your Knives Come With Boxes?",
     answer: "Yes, all knives and knife sets come in a presentation box.",
   },
