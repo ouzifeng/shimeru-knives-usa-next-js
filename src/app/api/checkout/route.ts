@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
 
     const sessionParams: Record<string, unknown> = {
       mode: "payment",
-      payment_method_types: ["card", "klarna", "afterpay_clearpay", "paypal", "link"],
+      payment_method_types: ["card", "paypal", "link"],
       line_items,
       success_url: `${origin}/order-confirmation?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/checkout`,

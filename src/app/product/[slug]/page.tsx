@@ -185,7 +185,7 @@ function ProductJsonLd({ product, seo }: { product: Product; seo: any }) {
         "@context": "https://schema.org",
         "@type": "FAQPage",
         mainEntity: [
-          { "@type": "Question", name: "Do You Offer Payment Terms?", acceptedAnswer: { "@type": "Answer", text: "Yes, we offer PayPal Pay Later, Klarna and Afterpay, both of whom offer a range of buy now pay later options. Just choose PayPal Pay Later, Klarna or Afterpay as a payment method at checkout." } },
+          { "@type": "Question", name: "Do You Offer Payment Terms?", acceptedAnswer: { "@type": "Answer", text: "Yes, we offer PayPal Pay in 4, which lets you split your purchase into 4 interest-free payments over 6 weeks. Just choose PayPal at checkout and select 'Pay Later'." } },
           { "@type": "Question", name: "Do Your Knives Come With Boxes?", acceptedAnswer: { "@type": "Answer", text: "Yes, all knives and knife sets come in a presentation box." } },
           { "@type": "Question", name: "How Long Does Shipping Take?", acceptedAnswer: { "@type": "Answer", text: "We offer free USPS Priority Mail shipping on all orders. All orders placed before 12pm EST are shipped the same day." } },
           { "@type": "Question", name: "Is Tracking Available?", acceptedAnswer: { "@type": "Answer", text: "Yes, USPS will provide tracking updates via email." } },
@@ -295,11 +295,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
               {/* BNPL messaging */}
               <p className="text-base text-muted-foreground">
-                or 3 interest-free payments of{" "}
+                or 4 interest-free payments of{" "}
                 <span className="text-foreground font-medium">
-                  {formatPrice(product.price / 3)}
+                  {formatPrice(product.price / 4)}
                 </span>
-                {" "}with Klarna or Afterpay
+                {" "}with PayPal Pay in 4
               </p>
             </div>
 

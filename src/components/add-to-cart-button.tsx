@@ -263,11 +263,15 @@ export function AddToCartButton({ product, attributes, belowButton }: Props) {
       {belowButton}
 
       {/* Payment methods */}
-      <div className="flex items-center gap-3 pt-1">
+      <div className="flex items-center gap-2 pt-1 flex-wrap">
         <span className="text-xs text-muted-foreground">Pay with</span>
-        <img src="/payments/klarna.png" alt="Klarna" className="h-6 w-auto" />
-        <img src="/payments/paypal.png" alt="PayPal" className="h-5 w-auto" />
-        <img src="/payments/afterpay.png" alt="Afterpay" className="h-5 w-auto" />
+        <img src="/payments/visa.svg" alt="Visa" className="h-5 w-auto" />
+        <img src="/payments/mastercard.svg" alt="Mastercard" className="h-5 w-auto" />
+        <img src="/payments/amex.svg" alt="American Express" className="h-5 w-auto" />
+        <img src="/payments/apple-pay.svg" alt="Apple Pay" className="h-5 w-auto" />
+        <img src="/payments/google-pay.svg" alt="Google Pay" className="h-5 w-auto" />
+        <img src="/payments/paypal.svg" alt="PayPal" className="h-5 w-auto" />
+        <span className="text-xs text-muted-foreground">Link</span>
       </div>
     </div>
   );
