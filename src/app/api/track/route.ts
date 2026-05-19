@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 const VALID_EVENTS = [
+  "page_view",
   "add_to_cart",
   "checkout_viewed",
   "payment_started",
@@ -22,6 +23,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid event" }, { status: 400 });
     }
 
+    const forwarded = req.headers.get("x-forwarded-for") || "";
+    const ip = forwarded.split(",")[0].trim() || null;
+    const ua = req.headers.get("user-agent") || null;
+    const enrichedMeta = { ...(metadata || {}), ip, ua };
+
     const { error: insertError } = await getSupabaseAdmin()
       .from("funnel_events")
       .insert({
@@ -30,7 +36,7 @@ export async function POST(req: NextRequest) {
         product_id: product_id ?? null,
         product_name: product_name ?? null,
         cart_value: cart_value ?? null,
-        metadata: metadata ?? null,
+        metadata: enrichedMeta,
       });
 
     if (insertError) {

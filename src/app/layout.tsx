@@ -8,6 +8,7 @@ import { Analytics } from "@/components/analytics";
 import { MetaPixelEvents } from "@/components/meta-pixel";
 import { TikTokPixelEvents } from "@/components/tiktok-pixel";
 import { UtmCapture } from "@/components/utm-capture";
+import { FunnelPageView } from "@/components/funnel-pageview";
 import Script from "next/script";
 import { storeConfig } from "../../store.config";
 
@@ -115,6 +116,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <TikTokPixelEvents />
         <UtmCapture />
+        <FunnelPageView />
       </body>
     </html>
   );
