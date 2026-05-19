@@ -138,6 +138,16 @@ export async function GET(req: NextRequest) {
   const productAdds = new Map<number, number>();
   const productBuys = new Map<number, { qty: number; revenue: number }>();
 
+  // Per-product session-id back-references (sets to dedupe)
+  const productViewSessions = new Map<number, Set<string>>();
+  const productAddSessions = new Map<number, Set<string>>();
+  const productBuySessions = new Map<number, Set<string>>();
+  function pushSession(map: Map<number, Set<string>>, pid: number, sid: string) {
+    let set = map.get(pid);
+    if (!set) { set = new Set(); map.set(pid, set); }
+    set.add(sid);
+  }
+
   // Build per-session journeys
   const sessions: Array<{
     session_id: string;
@@ -173,10 +183,12 @@ export async function GET(req: NextRequest) {
         const prod = slug ? slugToProduct.get(slug) : null;
         if (prod) {
           productViews.set(prod.id, (productViews.get(prod.id) || 0) + 1);
+          pushSession(productViewSessions, prod.id, sid);
         }
       }
       if (e.event === "add_to_cart" && e.product_id) {
         productAdds.set(e.product_id, (productAdds.get(e.product_id) || 0) + 1);
+        pushSession(productAddSessions, e.product_id, sid);
       }
     }
 
@@ -220,6 +232,9 @@ export async function GET(req: NextRequest) {
       cur.qty += li.qty || 1;
       cur.revenue += (li.price || 0) * (li.qty || 1);
       productBuys.set(li.product_id, cur);
+      if (o.funnel_session_id) {
+        pushSession(productBuySessions, li.product_id, o.funnel_session_id);
+      }
     }
   }
 
@@ -240,6 +255,9 @@ export async function GET(req: NextRequest) {
       add_to_buy_pct: pct(buys.qty, adds),
       view_to_buy_pct: pct(buys.qty, views),
       never_viewed: views === 0,
+      viewed_by_sessions: Array.from(productViewSessions.get(p.id) || []),
+      added_by_sessions: Array.from(productAddSessions.get(p.id) || []),
+      purchased_in_sessions: Array.from(productBuySessions.get(p.id) || []),
     };
   });
 
