@@ -560,7 +560,7 @@ function OrdersTab() {
                       <div className="text-xs text-muted-foreground">
                         {(() => {
                           const d = new Date(order.created_at);
-                          return `${d.getMonth() + 1}/${d.getDate()}/${String(d.getFullYear()).slice(-2)}`;
+                          return `${d.getDate()}/${d.getMonth() + 1}/${String(d.getFullYear()).slice(-2)}`;
                         })()}
                       </div>
                     </td>
