@@ -556,12 +556,13 @@ function OrdersTab() {
                 {orders.map((order) => (
                   <tr key={order.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3">
-                      <span className="font-medium">#{order.id}</span>
-                      {order.wc_order_id && (
-                        <span className="ml-1 text-xs text-muted-foreground">
-                          (WC #{order.wc_order_id})
-                        </span>
-                      )}
+                      <div className="font-medium">#{order.wc_order_id ?? order.id}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {(() => {
+                          const d = new Date(order.created_at);
+                          return `${d.getMonth() + 1}/${d.getDate()}/${String(d.getFullYear()).slice(-2)}`;
+                        })()}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="font-medium">{order.customer_name || "—"}</div>
