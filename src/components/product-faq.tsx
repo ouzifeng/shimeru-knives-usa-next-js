@@ -16,7 +16,7 @@ const faqs = [
   {
     question: "Are Your Products Age Restricted?",
     answer:
-      "Yes, you must be 18 or older to purchase a chef\u2019s knife online.",
+      "Yes \u2014 it\u2019s our store policy that customers must be 18 or older to purchase a knife from us. By placing an order, you confirm you meet this requirement.",
   },
   {
     question: "Are You A Dropshipping Site?",
