@@ -6,7 +6,7 @@ const faqs = [
   {
     question: "How Long Does Shipping Take?",
     answer:
-      "We offer free USPS Priority Mail shipping on all orders. All orders placed before 12pm EST are shipped the same day.",
+      "We offer free USPS Priority Mail shipping on all orders, delivered in 3–5 business days. Upgrade to USPS Priority Mail Express at checkout for $5.99 to receive your order in 1–3 business days. All orders placed before 12pm EST are shipped the same day.",
   },
   {
     question: "Is Tracking Available?",
