@@ -21,14 +21,29 @@ const faqs = [
   {
     question: "Are You A Dropshipping Site?",
     answer:
-      "No. We hold our own branded inventory in our US fulfillment partner's warehouse in Illinois, and every US order is picked, packed and shipped from there with USPS tracking.\n\nReturns go back to that same Illinois address — never overseas. We're a UK based business, but our US operations run end-to-end from the US to keep delivery and returns fast for US customers.",
+      "Absolutely not! We hold our own branded inventory in our US fulfillment partner's warehouse in Illinois, and every US order is picked, packed and shipped from there with USPS tracking.\n\nThere are a lot of companies out there shipping rubbish directly from China and not only is their quality subpar, their customer service is very poor, requiring you to return their knives to an address in China.\n\nReturns are managed through our [Returns & Refunds](/refund_returns) page.",
   },
   {
     question: "How Do I Return A Knife?",
     answer:
-      "Returns are straightforward. Email us with your order number, and we will provide you with a prepaid return label. Once our warehouse has received it, we will refund the order.",
+      "Returns are handled through our self-service [Returns & Refunds](/refund_returns) portal — enter your order number, follow the steps, and we'll refund you once the knife arrives back with us.",
   },
 ];
+
+function renderAnswer(text: string) {
+  const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g);
+  return parts.map((part, i) => {
+    const match = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+    if (match) {
+      return (
+        <a key={i} href={match[2]} className="underline underline-offset-4 hover:text-foreground">
+          {match[1]}
+        </a>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
 
 export function ProductFaq() {
   return (
@@ -46,7 +61,7 @@ export function ProductFaq() {
               </span>
             </summary>
             <div className="pb-4 text-base text-foreground/85 leading-relaxed whitespace-pre-line">
-              {faq.answer}
+              {renderAnswer(faq.answer)}
             </div>
           </details>
         ))}
