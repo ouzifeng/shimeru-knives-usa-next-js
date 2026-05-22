@@ -38,6 +38,7 @@ export function Footer() {
               <li><Link href="/shipping-and-delivery" className="hover:text-background transition-colors">Shipping &amp; Delivery</Link></li>
               <li><Link href="/refund_returns" className="hover:text-background transition-colors">Returns &amp; Refunds</Link></li>
               <li><Link href="/knife-care" className="hover:text-background transition-colors">Knife Care Guide</Link></li>
+              <li><Link href="/blog" className="hover:text-background transition-colors">Blog</Link></li>
             </ul>
           </div>
 
@@ -59,6 +60,26 @@ export function Footer() {
                   className="hover:text-background transition-colors"
                 >
                   Facebook
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://www.instagram.com/shimeruknives/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-background transition-colors"
+                >
+                  Instagram
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://www.tiktok.com/@shimeru_knives"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-background transition-colors"
+                >
+                  TikTok
                 </a>
               </li>
             </ul>
