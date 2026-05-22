@@ -1,7 +1,4 @@
-import { readdir, readFile } from "fs/promises";
-import path from "path";
-
-const BLOG_DIR = path.join(process.cwd(), "src", "content", "blog");
+import { getSupabase } from "@/lib/supabase";
 
 export interface BlogPost {
   title: string;
@@ -15,84 +12,63 @@ export interface BlogPost {
   content: string;
 }
 
-function parseFrontmatter(raw: string): { data: Record<string, any>; content: string } {
-  const match = raw.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-  if (!match) return { data: {}, content: raw };
-
-  const frontmatter = match[1];
-  const content = match[2].trim();
-  const data: Record<string, any> = {};
-
-  for (const line of frontmatter.split("\n")) {
-    const colonIdx = line.indexOf(":");
-    if (colonIdx === -1) continue;
-
-    const key = line.slice(0, colonIdx).trim();
-    let value = line.slice(colonIdx + 1).trim();
-
-    // Handle arrays like ["cat1", "cat2"]
-    if (value.startsWith("[") && value.endsWith("]")) {
-      const inner = value.slice(1, -1);
-      data[key] = inner
-        .split(/,\s*/)
-        .map((s) => s.replace(/^"(.*)"$/, "$1"))
-        .filter(Boolean);
-      continue;
-    }
-
-    // Strip quotes
-    if (value.startsWith('"') && value.endsWith('"')) {
-      value = value.slice(1, -1).replace(/\\"/g, '"');
-    }
-
-    data[key] = value;
-  }
-
-  return { data, content };
+interface DbBlogRow {
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  body_html: string;
+  meta_title: string | null;
+  meta_description: string | null;
+  featured_image_url: string | null;
+  categories: string[] | null;
+  published_at: string;
 }
 
+function rowToPost(row: DbBlogRow): BlogPost {
+  return {
+    title: row.title,
+    slug: row.slug,
+    date: row.published_at,
+    excerpt: row.excerpt ?? "",
+    featuredImage: row.featured_image_url ?? undefined,
+    categories: row.categories ?? undefined,
+    metaTitle: row.meta_title ?? undefined,
+    metaDescription: row.meta_description ?? undefined,
+    content: row.body_html,
+  };
+}
+
+const SELECT_COLUMNS =
+  "slug,title,excerpt,body_html,meta_title,meta_description,featured_image_url,categories,published_at";
+
 export async function getAllPosts(): Promise<BlogPost[]> {
-  const files = await readdir(BLOG_DIR);
-  const mdxFiles = files.filter((f) => f.endsWith(".mdx"));
+  const { data, error } = await getSupabase()
+    .from("blog_posts")
+    .select(SELECT_COLUMNS)
+    .eq("status", "published")
+    .order("published_at", { ascending: false });
 
-  const posts = await Promise.all(
-    mdxFiles.map(async (file) => {
-      const raw = await readFile(path.join(BLOG_DIR, file), "utf-8");
-      const { data, content } = parseFrontmatter(raw);
-      return {
-        title: data.title || file.replace(".mdx", ""),
-        slug: data.slug || file.replace(".mdx", ""),
-        date: data.date || "",
-        excerpt: data.excerpt || "",
-        featuredImage: data.featuredImage || undefined,
-        categories: data.categories || undefined,
-        metaTitle: data.metaTitle || undefined,
-        metaDescription: data.metaDescription || undefined,
-        content,
-      } as BlogPost;
-    })
-  );
+  if (error) {
+    console.error("getAllPosts error:", error);
+    return [];
+  }
 
-  // Sort by date descending
-  return posts.sort((a, b) => (b.date > a.date ? 1 : -1));
+  return (data as DbBlogRow[]).map(rowToPost);
 }
 
 export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
-  try {
-    const raw = await readFile(path.join(BLOG_DIR, `${slug}.mdx`), "utf-8");
-    const { data, content } = parseFrontmatter(raw);
-    return {
-      title: data.title || slug,
-      slug: data.slug || slug,
-      date: data.date || "",
-      excerpt: data.excerpt || "",
-      featuredImage: data.featuredImage || undefined,
-      categories: data.categories || undefined,
-      metaTitle: data.metaTitle || undefined,
-      metaDescription: data.metaDescription || undefined,
-      content,
-    };
-  } catch {
+  const { data, error } = await getSupabase()
+    .from("blog_posts")
+    .select(SELECT_COLUMNS)
+    .eq("status", "published")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) {
+    console.error("getPostBySlug error:", error);
     return null;
   }
+  if (!data) return null;
+
+  return rowToPost(data as DbBlogRow);
 }
