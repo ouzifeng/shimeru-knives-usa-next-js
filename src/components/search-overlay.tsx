@@ -9,6 +9,7 @@ interface SearchResult {
   id: number;
   name: string;
   slug: string;
+  sku: string | null;
   price: number;
   sale_price: number | null;
   on_sale: boolean;
@@ -180,6 +181,11 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{product.name}</p>
+                    {product.sku && (
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        SKU: {product.sku}
+                      </p>
+                    )}
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-sm">
                         {formatPrice(product.price)}

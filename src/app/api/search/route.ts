@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { decodeEntities } from "@/lib/format";
 
 const CACHE_HEADERS = { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" };
-const PRODUCT_FIELDS = "id, name, slug, price, sale_price, on_sale, images, stock_status";
+const PRODUCT_FIELDS = "id, name, slug, sku, price, sale_price, on_sale, images, stock_status";
 
 function decodeName<T extends { name?: string | null }>(r: T): T {
   return r?.name ? { ...r, name: decodeEntities(r.name) } : r;
@@ -28,24 +28,37 @@ export async function GET(req: NextRequest) {
     .slice(0, 3)
     .map(([slug, name]) => ({ slug, name: decodeEntities(name) }));
 
-  // Search products via FTS
-  const { data } = await supabase
-    .from("products")
-    .select(PRODUCT_FIELDS)
-    .eq("status", "publish")
-    .textSearch("fts", q, { type: "websearch" })
-    .limit(6);
+  // Search products via FTS (name/description) + SKU ilike in parallel
+  const escapedQ = q.replace(/[%,]/g, "");
+  const [ftsRes, skuRes] = await Promise.all([
+    supabase
+      .from("products")
+      .select(PRODUCT_FIELDS)
+      .eq("status", "publish")
+      .textSearch("fts", q, { type: "websearch" })
+      .limit(6),
+    supabase
+      .from("products")
+      .select(PRODUCT_FIELDS)
+      .eq("status", "publish")
+      .ilike("sku", `%${escapedQ}%`)
+      .limit(6),
+  ]);
 
-  if (data?.length) {
-    return NextResponse.json({ results: data.map(decodeName), categories }, { headers: CACHE_HEADERS });
+  const merged = [...(skuRes.data || []), ...(ftsRes.data || [])];
+  const seen = new Set<number>();
+  const deduped = merged.filter((p) => (seen.has(p.id) ? false : seen.add(p.id)));
+
+  if (deduped.length) {
+    return NextResponse.json({ results: deduped.slice(0, 6).map(decodeName), categories }, { headers: CACHE_HEADERS });
   }
 
-  // Fallback to ilike if FTS returns nothing
+  // Fallback to ilike on name + sku if both primary paths returned nothing
   const { data: fallback } = await supabase
     .from("products")
     .select(PRODUCT_FIELDS)
     .eq("status", "publish")
-    .ilike("name", `%${q}%`)
+    .or(`name.ilike.%${escapedQ}%,sku.ilike.%${escapedQ}%`)
     .limit(6);
 
   return NextResponse.json({ results: (fallback || []).map(decodeName), categories }, { headers: CACHE_HEADERS });
