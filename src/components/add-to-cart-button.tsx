@@ -40,6 +40,15 @@ function isBusinessDay(date: Date): boolean {
   return !US_HOLIDAYS.has(iso);
 }
 
+// USPS delivers Mon-Sat (no Sunday for standard classes, no federal holidays).
+// Used for the transit estimate even though the 3PL only dispatches Mon-Fri.
+function isDeliveryDay(date: Date): boolean {
+  const day = date.getDay();
+  if (day === 0) return false;
+  const iso = date.toISOString().slice(0, 10);
+  return !US_HOLIDAYS.has(iso);
+}
+
 interface DeliveryRange {
   from: string;
   to: string;
@@ -66,19 +75,20 @@ function getEstimatedDelivery(): { standard: DeliveryRange; express: DeliveryRan
     dispatchDay.setDate(dispatchDay.getDate() + 1);
   }
 
-  // Skip weekends and US federal holidays for dispatch
+  // 3PL only dispatches on business days (Mon-Fri, no federal holidays).
   while (!isBusinessDay(dispatchDay)) {
     dispatchDay.setDate(dispatchDay.getDate() + 1);
   }
 
-  // Standard: 3-5 business days. Express: 1-3 business days. Both match
-  // the transit windows on /shipping-and-delivery and Merchant Center.
-  const addBusinessDays = (date: Date, days: number) => {
+  // Standard: 3-5 days. Express: 1-3 days. USPS delivers Saturday, so use
+  // delivery days (Mon-Sat) for the transit estimate. This matches USPS's
+  // own published transit windows.
+  const addDeliveryDays = (date: Date, days: number) => {
     const result = new Date(date);
     let added = 0;
     while (added < days) {
       result.setDate(result.getDate() + 1);
-      if (isBusinessDay(result)) {
+      if (isDeliveryDay(result)) {
         added++;
       }
     }
@@ -90,12 +100,12 @@ function getEstimatedDelivery(): { standard: DeliveryRange; express: DeliveryRan
 
   return {
     standard: {
-      from: fmt(addBusinessDays(dispatchDay, 3)),
-      to: fmt(addBusinessDays(dispatchDay, 5)),
+      from: fmt(addDeliveryDays(dispatchDay, 3)),
+      to: fmt(addDeliveryDays(dispatchDay, 5)),
     },
     express: {
-      from: fmt(addBusinessDays(dispatchDay, 1)),
-      to: fmt(addBusinessDays(dispatchDay, 3)),
+      from: fmt(addDeliveryDays(dispatchDay, 1)),
+      to: fmt(addDeliveryDays(dispatchDay, 3)),
     },
   };
 }
