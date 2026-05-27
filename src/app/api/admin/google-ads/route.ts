@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleAdsApi } from "google-ads-api";
 
-// US PMax campaign ID — not launched yet (expected ~2026-05-22).
-// Until set, the dashboard returns zeros so UK campaign data isn't blended in.
-const CAMPAIGN_ID = "";
+// US PMax campaign ID — pinned so the dashboard isn't blended with the UK campaign
+// (same Google Ads account is shared across both stores).
+const CAMPAIGN_ID = "23825319027";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
