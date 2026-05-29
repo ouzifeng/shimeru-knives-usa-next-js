@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { sendTransactionalEmail } from "@/lib/postmark";
 import { storeConfig } from "../../../../../store.config";
 
 const REPORT_TO = "mr.davidoak@gmail.com";
-const SENDER = { name: "Shimeru Reports", email: "sales@shimeruknives.co.uk" };
 const BOT_IP_PREFIXES = ["66.102.", "64.233.", "35.187.", "35.190.", "35.191.", "66.249."];
 const BOT_UA_PATTERNS = [/googlebot/i, /bingbot/i, /bytespider/i, /ahrefsbot/i, /semrushbot/i, /facebookexternalhit/i];
 
@@ -341,31 +341,27 @@ export async function GET(req: NextRequest) {
 
   const attachmentBase64 = Buffer.from(json, "utf8").toString("base64");
 
-  const brevoRes = await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: {
-      "api-key": process.env.BREVO_API_KEY!,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      sender: SENDER,
-      replyTo: SENDER,
-      to: [{ email: REPORT_TO, name: "David" }],
-      subject,
-      htmlContent,
-      attachment: [
-        {
-          name: "journey-digest.json",
-          content: attachmentBase64,
-        },
-      ],
-    }),
+  const result = await sendTransactionalEmail({
+    to: REPORT_TO,
+    fromName: "Shimeru Reports",
+    subject,
+    html: htmlContent,
+    tag: "journey-digest",
+    attachments: [
+      {
+        Name: "journey-digest.json",
+        Content: attachmentBase64,
+        ContentType: "application/json",
+      },
+    ],
   });
 
-  if (!brevoRes.ok) {
-    const errText = await brevoRes.text();
-    console.error("[journey-digest] Brevo error:", errText);
-    return NextResponse.json({ error: "Failed to send email", detail: errText }, { status: 502 });
+  if (!result.ok) {
+    console.error("[journey-digest] Postmark error:", result.error);
+    return NextResponse.json(
+      { error: "Failed to send email", detail: result.error },
+      { status: 502 }
+    );
   }
 
   return NextResponse.json({

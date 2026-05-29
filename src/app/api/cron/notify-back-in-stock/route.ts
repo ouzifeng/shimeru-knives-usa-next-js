@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { sendTransactionalEmail } from "@/lib/postmark";
 import { storeConfig } from "../../../../../store.config";
-
-const SENDER = { name: "Shimeru Knives", email: "sales@shimeruknives.co.uk" };
 
 function escapeHtml(s: string): string {
   return s
@@ -96,24 +95,16 @@ export async function GET(req: NextRequest) {
     const productUrl = `${storeConfig.url}/product/${sub.product_slug}`;
     const html = buildEmailHtml(sub.product_name as string, productUrl, storeConfig.name);
 
-    const brevoRes = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        "api-key": process.env.BREVO_API_KEY!,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        sender: SENDER,
-        replyTo: SENDER,
-        to: [{ email: sub.email }],
-        subject: `${sub.product_name} is back in stock`,
-        htmlContent: html,
-      }),
+    const result = await sendTransactionalEmail({
+      to: sub.email as string,
+      subject: `${sub.product_name} is back in stock`,
+      html,
+      tag: "back-in-stock",
+      metadata: { product_id: String(sub.product_id) },
     });
 
-    if (!brevoRes.ok) {
-      const errText = await brevoRes.text();
-      console.error(`[notify-back-in-stock] Brevo failed for sub ${sub.id}:`, errText);
+    if (!result.ok) {
+      console.error(`[notify-back-in-stock] Postmark failed for sub ${sub.id}:`, result.error);
       failed++;
       continue;
     }

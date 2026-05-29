@@ -7,6 +7,7 @@ import { Loader2, Check } from "lucide-react";
 
 export function ContactFormEmbed() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", order_number: "", message: "" });
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,12 +18,12 @@ export function ContactFormEmbed() {
     setError(null);
 
     try {
-      const res = await fetch("https://woohub-backend.vercel.app/api/tickets/contact-form", {
+      const res = await fetch("/api/support/contact-form", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          token: "f026396c5b4b7274ffec75f47deeed53",
+          idempotency_key: idempotencyKey,
         }),
       });
 

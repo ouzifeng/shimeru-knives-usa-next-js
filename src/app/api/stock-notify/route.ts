@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { sendTransactionalEmail } from "@/lib/postmark";
 import { storeConfig } from "../../../../store.config";
 
 const ADMIN_NOTIFY_EMAIL = "mr.davidoak@gmail.com";
-const SENDER = { name: "Shimeru Knives", email: "sales@shimeruknives.co.uk" };
-// Note: US storefront intentionally does NOT add subscribers to a Brevo list —
-// the existing list (ID 9 in UK) is for UK customers only.
+const BREVO_LIST_ID = 9;
 
 async function notifyAdmin(productName: string, productSlug: string, email: string) {
   const productUrl = `${storeConfig.url}/product/${productSlug}`;
@@ -14,18 +13,29 @@ async function notifyAdmin(productName: string, productSlug: string, email: stri
   <li><strong>Email:</strong> ${email}</li>
   <li><strong>Product:</strong> <a href="${productUrl}">${productName}</a></li>
 </ul>`;
-  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+  await sendTransactionalEmail({
+    to: ADMIN_NOTIFY_EMAIL,
+    subject: `[${storeConfig.name}] Back-in-stock signup: ${productName}`,
+    html,
+    tag: "stock-notify-admin",
+  });
+}
+
+async function addToBrevoList(email: string) {
+  const res = await fetch("https://api.brevo.com/v3/contacts", {
     method: "POST",
     headers: { "api-key": process.env.BREVO_API_KEY!, "Content-Type": "application/json" },
     body: JSON.stringify({
-      sender: SENDER,
-      replyTo: SENDER,
-      to: [{ email: ADMIN_NOTIFY_EMAIL }],
-      subject: `[${storeConfig.name}] Back-in-stock signup: ${productName}`,
-      htmlContent: html,
+      email,
+      listIds: [BREVO_LIST_ID],
+      updateEnabled: true,
     }),
   });
-  if (!res.ok) console.error("[stock-notify] admin email failed:", await res.text());
+  if (!res.ok) {
+    // Brevo returns 400 "Contact already exist" when the contact exists but
+    // updateEnabled: true should add the list. Log for visibility either way.
+    console.error("[stock-notify] Brevo contacts failed:", await res.text());
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -65,8 +75,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (insertErr) {
-      // 23505 = unique violation = already subscribed for this product. Treat as ok.
+      // 23505 = unique violation = already subscribed for this product. Treat as ok
+      // (still re-add to the Brevo list in case it was removed).
       if (insertErr.code === "23505") {
+        await addToBrevoList(email).catch((e) => console.error("[stock-notify]", e));
         return NextResponse.json({ ok: true, alreadySubscribed: true });
       }
       console.error("[stock-notify] insert error:", insertErr);
@@ -76,10 +88,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Best-effort admin email — subscription is already saved.
-    await notifyAdmin(product.name, product.slug, email).catch((e) =>
-      console.error("[stock-notify]", e)
-    );
+    // Fire-and-forget — subscription is already saved, these are best-effort.
+    await Promise.allSettled([
+      notifyAdmin(product.name, product.slug, email),
+      addToBrevoList(email),
+    ]);
 
     return NextResponse.json({ ok: true });
   } catch (err) {

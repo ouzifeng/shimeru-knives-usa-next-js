@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { sendTransactionalEmail } from "@/lib/postmark";
 
 const RETURN_WINDOW_DAYS = 60;
 
-const RETURN_ADDRESS = `InSync Fulfillment C/O Shimeru Knives
-1115 Hosler Dr
-Bolingbrook, IL 60490
-United States`;
+const RETURN_ADDRESS = `Kays Logistics C/O Shimeru Knives
+1 Windward Drive
+Estuary Commerce Park
+Speke
+Liverpool
+L24 8QR`;
 
 export async function POST(req: NextRequest) {
   const { orderId, email, items, reason } = await req.json();
@@ -162,22 +165,16 @@ export async function POST(req: NextRequest) {
   `;
 
   // Send customer confirmation email
-  const brevoRes = await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: {
-      "api-key": process.env.BREVO_API_KEY!,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      sender: { name: "Shimeru Knives", email: "sales@shimeruknives.co.uk" },
-      to: [{ email: order.customer_email, name: order.customer_name || "" }],
-      subject: `Your Return Request — Order #${order.wc_order_id}`,
-      htmlContent: customerHtml,
-    }),
+  const customerResult = await sendTransactionalEmail({
+    to: order.customer_email,
+    subject: `Your Return Request — Order #${order.wc_order_id}`,
+    html: customerHtml,
+    tag: "return-customer",
+    metadata: { wc_order_id: String(order.wc_order_id) },
   });
 
-  if (!brevoRes.ok) {
-    console.error("[returns/submit] Brevo customer email error:", await brevoRes.text());
+  if (!customerResult.ok) {
+    console.error("[returns/submit] customer email error:", customerResult.error);
   }
 
   // Send admin notification email
@@ -203,18 +200,12 @@ export async function POST(req: NextRequest) {
     </div>
   `;
 
-  await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: {
-      "api-key": process.env.BREVO_API_KEY!,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      sender: { name: "Shimeru Knives", email: "sales@shimeruknives.co.uk" },
-      to: [{ email: "mr.davidoak@gmail.com", name: "David" }],
-      subject: `New Return Request — Order #${order.wc_order_id}`,
-      htmlContent: adminHtml,
-    }),
+  await sendTransactionalEmail({
+    to: "mr.davidoak@gmail.com",
+    subject: `New Return Request — Order #${order.wc_order_id}`,
+    html: adminHtml,
+    tag: "return-admin",
+    metadata: { wc_order_id: String(order.wc_order_id) },
   });
 
   return NextResponse.json({ ok: true });

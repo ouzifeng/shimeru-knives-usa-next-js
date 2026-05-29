@@ -196,3 +196,16 @@ export interface SyncState {
   started_at: string | null;
   completed_at: string | null;
 }
+
+export interface OrderSyncState {
+  id: number;
+  last_synced_at: string | null;
+  status: "idle" | "syncing" | "error";
+  orders_synced: number;
+  orders_with_status_change: number;
+  orders_total: number | null;
+  sync_phase: "fetching" | "writing" | null;
+  errors: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+}

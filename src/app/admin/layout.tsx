@@ -87,14 +87,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div>
-      <div className="mx-auto flex max-w-5xl items-center justify-end px-4 py-2">
-        <Button variant="ghost" size="sm" onClick={handleLogout}>
-          <LogOut className="size-3.5" />
-          Sign out
-        </Button>
+    <div className="flex h-screen flex-col">
+      <header className="shrink-0 border-b">
+        <div className="mx-auto flex max-w-7xl items-center justify-end px-4 py-2">
+          <Button variant="ghost" size="sm" onClick={handleLogout}>
+            <LogOut className="size-3.5" />
+            Sign out
+          </Button>
+        </div>
+      </header>
+      <div className="flex-1 overflow-y-auto">
+        {children}
       </div>
-      {children}
     </div>
   );
 }
