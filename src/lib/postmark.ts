@@ -3,7 +3,7 @@
 // path that hits the broadcast stream — do not use this helper for those.
 
 const DEFAULT_FROM_NAME = "Shimeru Knives";
-const DEFAULT_FROM_EMAIL = "sales@shimeruknives.co.uk";
+const DEFAULT_FROM_EMAIL = "sales@us.shimeruknives.co.uk";
 
 export type PostmarkAttachment = {
   Name: string;

@@ -3,8 +3,8 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { isAdmin } from "@/lib/admin-auth";
 
 const FROM_NAME = "Shimeru Knives";
-const FROM_EMAIL = "sales@shimeruknives.co.uk";
-const THREADING_DOMAIN = "shimeruknives.co.uk";
+const FROM_EMAIL = "sales@us.shimeruknives.co.uk";
+const THREADING_DOMAIN = "us.shimeruknives.co.uk";
 const STORAGE_BUCKET = "support-attachments";
 const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 30;
 

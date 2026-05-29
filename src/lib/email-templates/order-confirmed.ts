@@ -231,7 +231,7 @@ export function renderOrderConfirmed(d: OrderConfirmedData): {
             <td style="padding:48px 8px 0;">
               <div style="height:1px;background:${C.border};margin-bottom:24px;"></div>
               <p style="margin:0;text-align:center;font-family:${FONT_SANS};font-size:12px;line-height:1.7;color:${C.muted};">
-                Questions? Just reply to this email or write to <a href="mailto:sales@shimeruknives.co.uk" style="color:${C.primary};text-decoration:none;">sales@shimeruknives.co.uk</a>.
+                Questions? Just reply to this email or write to <a href="mailto:sales@us.shimeruknives.co.uk" style="color:${C.primary};text-decoration:none;">sales@us.shimeruknives.co.uk</a>.
               </p>
               <p style="margin:14px 0 0;text-align:center;font-family:${FONT_SANS};font-size:12px;line-height:1.7;color:${C.muted};">
                 Shimeru Knives
@@ -273,7 +273,7 @@ ${addr.country}
 What happens next
 ${whatHappensNext(d.shippingMethod)}
 
-Questions? Reply to this email or write to sales@shimeruknives.co.uk
+Questions? Reply to this email or write to sales@us.shimeruknives.co.uk
 
 Shimeru Knives
 `;

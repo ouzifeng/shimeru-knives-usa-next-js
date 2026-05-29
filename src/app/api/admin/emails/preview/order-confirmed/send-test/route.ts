@@ -5,7 +5,7 @@ import { buildOrderConfirmedFromLatestOrder } from "@/lib/email-templates/order-
 
 const TEST_RECIPIENT = "mr.davidoak@gmail.com";
 const FROM_NAME = "Shimeru Knives";
-const FROM_EMAIL = "sales@shimeruknives.co.uk";
+const FROM_EMAIL = "sales@us.shimeruknives.co.uk";
 
 export async function POST() {
   if (!(await isAdmin())) {

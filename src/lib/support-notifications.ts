@@ -1,6 +1,6 @@
 const ADMIN_EMAIL = "mr.davidoak@gmail.com";
 const FROM_NAME = "Shimeru Support";
-const FROM_EMAIL = "sales@shimeruknives.co.uk";
+const FROM_EMAIL = "sales@us.shimeruknives.co.uk";
 const ADMIN_URL = "https://us.shimeruknives.co.uk/admin?tab=support";
 
 type NotificationArgs = {
