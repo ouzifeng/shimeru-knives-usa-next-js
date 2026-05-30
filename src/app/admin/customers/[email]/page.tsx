@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AlertCircle, ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
+import { AlertCircle, ArrowLeft, ExternalLink, Loader2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ContactCustomerModal } from "@/components/admin/contact-customer-modal";
 import { formatPrice } from "@/lib/format";
 
 type Order = {
@@ -60,6 +62,8 @@ export default function CustomerDetailPage() {
   const [data, setData] = useState<DetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [contactOpen, setContactOpen] = useState(false);
+  const [contactSentTicketId, setContactSentTicketId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -133,12 +137,33 @@ export default function CustomerDetailPage() {
           <ArrowLeft className="size-4" />
           Back
         </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setContactOpen(true)}
+          className="gap-1.5"
+        >
+          <Mail className="size-3.5" />
+          Contact customer
+        </Button>
       </div>
 
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">{displayName}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{data.email}</p>
       </div>
+
+      {contactSentTicketId && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
+          <span>Email sent. A support ticket was created so any reply threads back here.</span>
+          <Link
+            href={`/admin?tab=support`}
+            className="text-xs font-medium underline-offset-4 hover:underline"
+          >
+            Open Support
+          </Link>
+        </div>
+      )}
 
       <div className="mb-6 grid gap-4 sm:grid-cols-4">
         <div className="rounded-xl border bg-card p-5 shadow-sm">
@@ -283,6 +308,14 @@ export default function CustomerDetailPage() {
           </section>
         </div>
       </div>
+
+      <ContactCustomerModal
+        open={contactOpen}
+        onClose={() => setContactOpen(false)}
+        customerEmail={data.email}
+        customerName={displayName !== data.email ? displayName : null}
+        onSent={(ticketId) => setContactSentTicketId(ticketId)}
+      />
     </div>
   );
 }

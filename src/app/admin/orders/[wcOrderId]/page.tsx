@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AlertCircle, ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
+import { AlertCircle, ArrowLeft, ExternalLink, Loader2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ContactCustomerModal } from "@/components/admin/contact-customer-modal";
 import { formatPrice } from "@/lib/format";
 
 type LineItem = {
@@ -122,6 +123,8 @@ export default function AdminOrderDetailPage() {
   const [data, setData] = useState<OrderResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [contactOpen, setContactOpen] = useState(false);
+  const [contactSentTicketId, setContactSentTicketId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -178,6 +181,11 @@ export default function AdminOrderDetailPage() {
   const statusClass = STATUS_COLOR[data.status] ?? "bg-muted text-muted-foreground";
   const refundedTotal = data.refunds.reduce((sum, r) => sum + Math.abs(Number(r.total) || 0), 0);
   const wcAdminUrl = `${process.env.NEXT_PUBLIC_WORDPRESS_URL || ""}/wp-admin/post.php?post=${data.id}&action=edit`;
+  const customerEmail = data.billing?.email || "";
+  const customerFullName = [data.billing?.first_name, data.billing?.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim() || null;
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-8">
@@ -186,16 +194,41 @@ export default function AdminOrderDetailPage() {
           <ArrowLeft className="size-4" />
           Back
         </Button>
-        <a
-          href={wcAdminUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-        >
-          Open in WordPress admin
-          <ExternalLink className="size-3" />
-        </a>
+        <div className="flex items-center gap-3">
+          {customerEmail && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setContactOpen(true)}
+              className="gap-1.5"
+            >
+              <Mail className="size-3.5" />
+              Contact customer
+            </Button>
+          )}
+          <a
+            href={wcAdminUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          >
+            Open in WordPress admin
+            <ExternalLink className="size-3" />
+          </a>
+        </div>
       </div>
+
+      {contactSentTicketId && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
+          <span>Email sent. A support ticket was created so any reply threads back here.</span>
+          <Link
+            href={`/admin?tab=support`}
+            className="text-xs font-medium underline-offset-4 hover:underline"
+          >
+            Open Support
+          </Link>
+        </div>
+      )}
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -456,6 +489,15 @@ export default function AdminOrderDetailPage() {
           </section>
         </div>
       </div>
+
+      <ContactCustomerModal
+        open={contactOpen}
+        onClose={() => setContactOpen(false)}
+        customerEmail={customerEmail}
+        customerName={customerFullName}
+        orderNumber={data.number}
+        onSent={(ticketId) => setContactSentTicketId(ticketId)}
+      />
     </div>
   );
 }
