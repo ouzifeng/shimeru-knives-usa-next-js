@@ -390,10 +390,15 @@ export async function POST(req: Request) {
             }
           }
 
-          const stock = item.vid
+          // The Supabase mirror still holds the PRE-sale figure here — WC
+          // reduces stock on its side and syncProducts() reconciles the mirror
+          // later, not within this webhook. Subtract what was just ordered so
+          // the alert shows the true remaining (clamped at 0).
+          const mirrorStock = item.vid
             ? variationMap.get(item.vid)?.stock_quantity
             : product?.stock_quantity;
-          const stockText = stock != null ? `${stock} left` : "—";
+          const stockText =
+            mirrorStock != null ? `${Math.max(0, mirrorStock - item.qty)} left` : "—";
 
           return `  • ${name} x${item.qty}  [${stockText}]`;
         });
