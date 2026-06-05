@@ -10,6 +10,9 @@ import { getSupabaseAdmin } from "./supabase";
 import { wcFetch } from "./woocommerce";
 import { renderOrderShipped } from "./email-templates/order-shipped";
 import { buildOrderShippedFromWcOrderId } from "./email-templates/order-shipped-data";
+import { renderOrderCancelled } from "./email-templates/order-cancelled";
+import { renderOrderRefunded } from "./email-templates/order-refunded";
+import { buildOrderStatusFromWcOrderId } from "./email-templates/order-status-data";
 import { sendTransactionalEmail } from "./postmark";
 
 // Fire the shipped email when an order transitions into "completed".
@@ -34,6 +37,37 @@ async function sendShippedEmail(wcOrderId: number, to: string): Promise<void> {
     if (!sent.ok) console.error("Shipped email failed:", wcOrderId, sent.error);
   } catch (err) {
     console.error("Shipped email threw:", wcOrderId, err);
+  }
+}
+
+// Fire the cancelled / refunded email when an order transitions into those WC
+// statuses. Same contract as sendShippedEmail: awaited, non-fatal.
+async function sendStatusEmail(
+  kind: "cancelled" | "refunded",
+  wcOrderId: number,
+  to: string
+): Promise<void> {
+  try {
+    const built = await buildOrderStatusFromWcOrderId(wcOrderId);
+    if (!built.ok) {
+      console.error(`Could not build ${kind} email:`, wcOrderId, built.reason);
+      return;
+    }
+    const { subject, html, text } =
+      kind === "cancelled"
+        ? renderOrderCancelled(built.data)
+        : renderOrderRefunded(built.data);
+    const sent = await sendTransactionalEmail({
+      to,
+      subject,
+      html,
+      text,
+      tag: `order-${kind}`,
+      metadata: { order: String(wcOrderId) },
+    });
+    if (!sent.ok) console.error(`${kind} email failed:`, wcOrderId, sent.error);
+  } catch (err) {
+    console.error(`${kind} email threw:`, wcOrderId, err);
   }
 }
 
@@ -143,17 +177,18 @@ export async function syncOrders(): Promise<{
           .update({ wc_status: order.status, wc_status_synced_at: nowIso })
           .eq("wc_order_id", order.id);
 
-        // Shipped email — only on a genuine transition INTO "completed".
-        // `previous` must be a known, non-completed status: a null prior
+        // Status-change emails, only on a GENUINE transition into the target
+        // WC status. `previous` must be a known, different status: a null prior
         // status means we never recorded this order's state, so we skip the
         // email to avoid blasting historical orders on the first sync.
-        if (
-          order.status === "completed" &&
-          previous &&
-          previous !== "completed" &&
-          existing.email
-        ) {
-          await sendShippedEmail(order.id, existing.email);
+        if (previous && existing.email) {
+          if (order.status === "completed" && previous !== "completed") {
+            await sendShippedEmail(order.id, existing.email);
+          } else if (order.status === "cancelled" && previous !== "cancelled") {
+            await sendStatusEmail("cancelled", order.id, existing.email);
+          } else if (order.status === "refunded" && previous !== "refunded") {
+            await sendStatusEmail("refunded", order.id, existing.email);
+          }
         }
       }
 
