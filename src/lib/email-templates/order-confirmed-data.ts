@@ -1,10 +1,11 @@
 // Shared helper to build OrderConfirmedData from a real Supabase order +
-// optional WC enrichment for shipping method. Used by both the preview
-// route and the send-test route so they render identical content.
+// optional WC enrichment for shipping method. Used by the live send (webhook),
+// the preview route, and the send-test route so they all render identically.
 
 import type { OrderConfirmedData } from "./order-confirmed";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { wcFetch } from "@/lib/woocommerce";
+import { formatPrice } from "@/lib/format";
 
 type LineItem = { pid: number; qty: number; vid?: number; price?: number };
 type Address = Record<string, string>;
@@ -16,17 +17,29 @@ type WCOrderForShipping = {
   shipping_total?: string;
 };
 
+type OrderRow = {
+  id: number;
+  wc_order_id: number | null;
+  customer_name: string | null;
+  amount_total: number;
+  line_items: LineItem[] | null;
+  shipping_address: Address | null;
+  billing_address: Address | null;
+  created_at: string;
+};
+
+const ORDER_SELECT =
+  "id, wc_order_id, customer_name, amount_total, status, line_items, shipping_address, billing_address, created_at";
+
+/** Build the email data from the most recent real order (admin preview/test). */
 export async function buildOrderConfirmedFromLatestOrder(): Promise<
-  | { ok: true; data: OrderConfirmedData }
-  | { ok: false; reason: string }
+  { ok: true; data: OrderConfirmedData } | { ok: false; reason: string }
 > {
   const supabase = getSupabaseAdmin();
 
   const { data: order } = await supabase
     .from("orders")
-    .select(
-      "id, wc_order_id, customer_name, amount_total, status, line_items, shipping_address, billing_address, created_at"
-    )
+    .select(ORDER_SELECT)
     .not("wc_order_id", "is", null)
     .neq("status", "abandoned")
     .order("created_at", { ascending: false })
@@ -41,9 +54,37 @@ export async function buildOrderConfirmedFromLatestOrder(): Promise<
     };
   }
 
+  return buildFromOrderRow(order);
+}
+
+/** Build the email data for a specific WooCommerce order id (live send). */
+export async function buildOrderConfirmedFromWcOrderId(
+  wcOrderId: number
+): Promise<{ ok: true; data: OrderConfirmedData } | { ok: false; reason: string }> {
+  const supabase = getSupabaseAdmin();
+
+  const { data: order } = await supabase
+    .from("orders")
+    .select(ORDER_SELECT)
+    .eq("wc_order_id", wcOrderId)
+    .limit(1)
+    .maybeSingle();
+
+  if (!order) {
+    return { ok: false, reason: `No Supabase order found for WC order #${wcOrderId}.` };
+  }
+
+  return buildFromOrderRow(order);
+}
+
+async function buildFromOrderRow(
+  order: OrderRow
+): Promise<{ ok: true; data: OrderConfirmedData } | { ok: false; reason: string }> {
+  const supabase = getSupabaseAdmin();
+
   const lineItems = (order.line_items as LineItem[] | null) ?? [];
   if (lineItems.length === 0) {
-    return { ok: false, reason: "Most recent order has no line items." };
+    return { ok: false, reason: "Order has no line items." };
   }
 
   const pids = Array.from(new Set(lineItems.map((li) => li.pid))).filter(Boolean);
@@ -63,7 +104,7 @@ export async function buildOrderConfirmedFromLatestOrder(): Promise<
     return {
       name: p?.name ?? `Product #${li.pid}`,
       quantity: li.qty || 1,
-      total: lineTotal != null ? `£${lineTotal.toFixed(2)}` : "—",
+      total: lineTotal != null ? formatPrice(lineTotal) : "—",
       imageUrl: p?.images?.[0]?.src,
     };
   });
@@ -83,17 +124,17 @@ export async function buildOrderConfirmedFromLatestOrder(): Promise<
     if (firstShipping?.method_title) shippingMethod = firstShipping.method_title;
     if (firstShipping?.total) {
       const t = Number(firstShipping.total);
-      shippingLabel = t > 0 ? `£${t.toFixed(2)}` : "Free";
+      shippingLabel = t > 0 ? formatPrice(t) : "Free";
     } else if (wc.shipping_total) {
       const t = Number(wc.shipping_total);
-      shippingLabel = t > 0 ? `£${t.toFixed(2)}` : "Free";
+      shippingLabel = t > 0 ? formatPrice(t) : "Free";
     }
   } catch {
     // WC API call failed — fall back to "Free" label and no method-specific copy
   }
 
   const firstName = (order.customer_name || "Friend").split(/\s+/)[0];
-  const dateLabel = new Date(order.created_at).toLocaleDateString("en-GB", {
+  const dateLabel = new Date(order.created_at).toLocaleDateString("en-US", {
     day: "2-digit",
     month: "long",
     year: "numeric",
@@ -109,9 +150,9 @@ export async function buildOrderConfirmedFromLatestOrder(): Promise<
       customerFirstName: firstName,
       dateLabel,
       items,
-      subtotal: `£${(computedSubtotal || Number(order.amount_total)).toFixed(2)}`,
+      subtotal: formatPrice(computedSubtotal || Number(order.amount_total)),
       shipping: shippingLabel,
-      total: `£${Number(order.amount_total).toFixed(2)}`,
+      total: formatPrice(Number(order.amount_total)),
       shippingAddress: {
         name:
           [shipping.first_name, shipping.last_name].filter(Boolean).join(" ") ||

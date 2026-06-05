@@ -4,6 +4,9 @@ import { createOrder, wcFetch } from "@/lib/woocommerce";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { fireServerPurchaseEvent } from "@/lib/tracking-server";
 import { sendTelegramMessage } from "@/lib/telegram";
+import { sendTransactionalEmail } from "@/lib/postmark";
+import { renderOrderConfirmed } from "@/lib/email-templates/order-confirmed";
+import { buildOrderConfirmedFromWcOrderId } from "@/lib/email-templates/order-confirmed-data";
 import type Stripe from "stripe";
 
 export async function POST(req: Request) {
@@ -293,6 +296,32 @@ export async function POST(req: Request) {
         } catch { /* non-critical */ }
         // Return 500 so Stripe retries the webhook
         return NextResponse.json({ error: "WC order creation failed" }, { status: 500 });
+      }
+
+      // ── Order confirmation email (Postmark) ──────────────────────
+      // MUST be awaited — Vercel kills the container on response, so a
+      // fire-and-forget fetch would die. Non-fatal: a Postmark failure must
+      // never 500 the webhook (that would make Stripe retry + duplicate work).
+      if (customer?.email) {
+        try {
+          const built = await buildOrderConfirmedFromWcOrderId(wcOrder.id);
+          if (built.ok) {
+            const { subject, html, text } = renderOrderConfirmed(built.data);
+            const sent = await sendTransactionalEmail({
+              to: customer.email,
+              subject,
+              html,
+              text,
+              tag: "order-confirmed",
+              metadata: { order: String(wcOrder.id) },
+            });
+            if (!sent.ok) console.error("Order confirmation email failed:", wcOrder.id, sent.error);
+          } else {
+            console.error("Could not build order confirmation email:", wcOrder.id, built.reason);
+          }
+        } catch (emailErr) {
+          console.error("Order confirmation email threw:", wcOrder.id, emailErr);
+        }
       }
 
       // ── GA4 tracking (with per-item prices) ──────────────────────

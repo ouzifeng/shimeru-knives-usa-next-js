@@ -25,6 +25,14 @@ export type SendTransactionalEmailParams = {
   /** Postmark Metadata — small key/value map indexable in the Postmark logs. */
   metadata?: Record<string, string>;
   attachments?: PostmarkAttachment[];
+  /** Track opens (pixel). Off by default for transactional receipts. */
+  trackOpens?: boolean;
+  /**
+   * Track link clicks. Postmark rewrites links and records a click event tied
+   * to this message's Tag + Metadata, so clicks can be attributed per recipient.
+   * Pass "HtmlAndText" | "HtmlOnly" | "TextOnly".
+   */
+  trackLinks?: "HtmlAndText" | "HtmlOnly" | "TextOnly";
 };
 
 export type SendTransactionalEmailResult = {
@@ -55,6 +63,8 @@ export async function sendTransactionalEmail(
   if (params.replyTo) body.ReplyTo = params.replyTo;
   if (params.tag) body.Tag = params.tag;
   if (params.metadata) body.Metadata = params.metadata;
+  if (params.trackOpens) body.TrackOpens = true;
+  if (params.trackLinks) body.TrackLinks = params.trackLinks;
   if (params.attachments && params.attachments.length > 0) {
     body.Attachments = params.attachments;
   }

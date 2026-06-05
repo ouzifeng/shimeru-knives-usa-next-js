@@ -3,10 +3,39 @@
 //   - auto-reset if the lock has been held > 10 min
 //   - buffer pattern: store START time of each run, use it as
 //     modified_after next tick so updates landing mid-sync are caught
-//   - no emails yet — just populates orders.wc_status + bumps wc_status_synced_at
+//   - sends the "shipped" email on a genuine transition INTO "completed"
+//     (Shimeru marks an order completed once it's picked + tracked = shipped)
 
 import { getSupabaseAdmin } from "./supabase";
 import { wcFetch } from "./woocommerce";
+import { renderOrderShipped } from "./email-templates/order-shipped";
+import { buildOrderShippedFromWcOrderId } from "./email-templates/order-shipped-data";
+import { sendTransactionalEmail } from "./postmark";
+
+// Fire the shipped email when an order transitions into "completed".
+// MUST be awaited (Vercel kills the container on response). Non-fatal —
+// a Postmark failure must never break the status sync.
+async function sendShippedEmail(wcOrderId: number, to: string): Promise<void> {
+  try {
+    const built = await buildOrderShippedFromWcOrderId(wcOrderId);
+    if (!built.ok) {
+      console.error("Could not build shipped email:", wcOrderId, built.reason);
+      return;
+    }
+    const { subject, html, text } = renderOrderShipped(built.data);
+    const sent = await sendTransactionalEmail({
+      to,
+      subject,
+      html,
+      text,
+      tag: "order-shipped",
+      metadata: { order: String(wcOrderId) },
+    });
+    if (!sent.ok) console.error("Shipped email failed:", wcOrderId, sent.error);
+  } catch (err) {
+    console.error("Shipped email threw:", wcOrderId, err);
+  }
+}
 
 const STALE_LOCK_MS = 10 * 60 * 1000;
 const PER_PAGE = 100;
@@ -82,13 +111,13 @@ export async function syncOrders(): Promise<{
       const wcIds = orders.map((o) => o.id);
       const { data: existingRows } = await admin
         .from("orders")
-        .select("wc_order_id, wc_status")
+        .select("wc_order_id, wc_status, customer_email")
         .in("wc_order_id", wcIds);
 
-      const existingMap = new Map<number, string | null>(
+      const existingMap = new Map<number, { status: string | null; email: string | null }>(
         (existingRows || []).map((r) => [
           r.wc_order_id as number,
-          r.wc_status as string | null,
+          { status: r.wc_status as string | null, email: r.customer_email as string | null },
         ])
       );
 
@@ -104,7 +133,8 @@ export async function syncOrders(): Promise<{
         if (!existingMap.has(order.id)) continue;
 
         totalSynced++;
-        const previous = existingMap.get(order.id);
+        const existing = existingMap.get(order.id)!;
+        const previous = existing.status;
         if (previous === order.status) continue; // no write needed
 
         totalChanged++;
@@ -112,6 +142,19 @@ export async function syncOrders(): Promise<{
           .from("orders")
           .update({ wc_status: order.status, wc_status_synced_at: nowIso })
           .eq("wc_order_id", order.id);
+
+        // Shipped email — only on a genuine transition INTO "completed".
+        // `previous` must be a known, non-completed status: a null prior
+        // status means we never recorded this order's state, so we skip the
+        // email to avoid blasting historical orders on the first sync.
+        if (
+          order.status === "completed" &&
+          previous &&
+          previous !== "completed" &&
+          existing.email
+        ) {
+          await sendShippedEmail(order.id, existing.email);
+        }
       }
 
       await admin
