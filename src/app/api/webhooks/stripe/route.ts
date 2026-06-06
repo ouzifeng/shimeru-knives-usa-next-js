@@ -4,6 +4,7 @@ import { createOrder, wcFetch } from "@/lib/woocommerce";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { fireServerPurchaseEvent } from "@/lib/tracking-server";
 import { sendTelegramMessage } from "@/lib/telegram";
+import { ukStartOfTodayUTC } from "@/lib/uk-day";
 import { sendTransactionalEmail } from "@/lib/postmark";
 import { renderOrderConfirmed } from "@/lib/email-templates/order-confirmed";
 import { buildOrderConfirmedFromWcOrderId } from "@/lib/email-templates/order-confirmed-data";
@@ -403,6 +404,33 @@ export async function POST(req: Request) {
           return `  • ${name} x${item.qty}  [${stockText}]`;
         });
 
+        // ── Running daily totals (reset at UK midnight, DST-safe) ────
+        // Counts this order too — it was inserted into Supabase above before
+        // we reach here. Best-effort: a failure here must not break the alert.
+        let dailyLine = "";
+        try {
+          const sinceUtc = ukStartOfTodayUTC().toISOString();
+          const { data: todaysOrders } = await admin
+            .from("orders")
+            .select("amount_total")
+            .eq("status", "completed")
+            .eq("currency", "USD")
+            .gte("created_at", sinceUtc);
+
+          const countToday = todaysOrders?.length ?? 0;
+          const salesToday = (todaysOrders ?? []).reduce(
+            (sum, o) => sum + Number(o.amount_total || 0),
+            0
+          );
+          if (countToday > 0) {
+            dailyLine =
+              `\n\n<b>Today:</b> order no. ${countToday} · ` +
+              `$${salesToday.toFixed(2)} total`;
+          }
+        } catch (dailyErr) {
+          console.error("Daily totals lookup failed:", dailyErr);
+        }
+
         await sendTelegramMessage(
           `🇺🇸 🔔 <b>New Order (US)</b>\n\n` +
           `<b>Customer:</b> ${customer?.name || "Unknown"}\n` +
@@ -410,7 +438,8 @@ export async function POST(req: Request) {
           `<b>Amount:</b> ${currency} ${amountTotal.toFixed(2)}\n` +
           (wcCouponCode ? `<b>Coupon:</b> ${wcCouponCode}\n` : "") +
           (wcOrder ? `<b>WC Order:</b> #${wcOrder.id}\n` : "") +
-          `\n<b>Items:</b>\n${itemLines.join("\n")}`
+          `\n<b>Items:</b>\n${itemLines.join("\n")}` +
+          dailyLine
         );
       } catch {
         // Non-critical — don't fail the webhook
