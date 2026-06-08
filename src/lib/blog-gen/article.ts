@@ -193,9 +193,11 @@ body_html is the inner HTML, starting with the hero {{unsplash:...}} token.`;
   const excerpt = stripDashes(post.excerpt || post.meta_description || "").slice(0, 320);
   const title = stripDashes(post.title || t.title);
 
+  // Strip any unresolved Unsplash token. Product tokens are intentional: they
+  // stay in the stored body and resolve to live cards at render time.
+  body = body.replace(/\{\{unsplash:[^{}]*\}\}/g, "");
   const banned = bannedHits(body);
   if (banned.length) throw new Error("banned phrases present: " + banned.join(", "));
-  if (/\{\{/.test(body)) throw new Error("unresolved token remains in body");
 
   return {
     slug: t.slug,
