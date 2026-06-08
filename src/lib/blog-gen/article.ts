@@ -124,7 +124,7 @@ STRICT RULES (output rejected if any fail):
 4. At least 2 inline links from the allowed list above.
 5. Do NOT invent specs, prices, test results, awards, ratings or chef endorsements. Use only the specs given.
 6. Banned phrases: "that said", "the good news is", "it is worth saying", "in conclusion", "when it comes to", "look no further", "elevate your".
-7. Use <h2>/<h3> headings and <p> paragraphs, at most one <ul>. Vary structure.
+7. Use <h2> for every section heading. That is the main heading style across the blog. Use <h3> sparingly and only for a genuine nested sub-point, never as your default. Use <p> paragraphs and at most one <ul>.
 8. Helpful and honest, not salesy.
 9. The meta_title must NOT contain the shop name or any "| Brand" suffix.
 10. Put a {{unsplash:QUERY}} token at the very top as the hero, and one more mid-article (QUERY is a short photo search).
