@@ -3152,6 +3152,10 @@ function SupportTab({ onTicketsChanged }: { onTicketsChanged?: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<"all" | SupportTicket["status"]>("pending");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(25);
 
   const loadTickets = useCallback(async () => {
     setLoading(true);
@@ -3175,6 +3179,19 @@ function SupportTab({ onTicketsChanged }: { onTicketsChanged?: () => void }) {
     loadTickets();
   }, [loadTickets]);
 
+  // Debounce: apply search after 250ms of no typing, only at 3+ chars
+  // (or when the field is cleared). Matches the Orders/Carts tabs.
+  useEffect(() => {
+    const trimmed = searchInput.trim();
+    if (trimmed.length === 0) {
+      setAppliedQuery("");
+      return;
+    }
+    if (trimmed.length < 3) return;
+    const handle = setTimeout(() => setAppliedQuery(trimmed), 250);
+    return () => clearTimeout(handle);
+  }, [searchInput]);
+
   const counts = {
     all: tickets.length,
     pending: tickets.filter((t) => t.status === "pending").length,
@@ -3182,8 +3199,30 @@ function SupportTab({ onTicketsChanged }: { onTicketsChanged?: () => void }) {
     solved: tickets.filter((t) => t.status === "solved").length,
   };
 
-  const visibleTickets =
-    filterStatus === "all" ? tickets : tickets.filter((t) => t.status === filterStatus);
+  const visibleTickets = useMemo(
+    () => (filterStatus === "all" ? tickets : tickets.filter((t) => t.status === filterStatus)),
+    [tickets, filterStatus]
+  );
+
+  const searchedTickets = useMemo(() => {
+    const q = appliedQuery.toLowerCase();
+    if (!q) return visibleTickets;
+    return visibleTickets.filter(
+      (t) =>
+        (t.customer_name?.toLowerCase().includes(q) ?? false) ||
+        (t.customer_email?.toLowerCase().includes(q) ?? false) ||
+        (t.subject?.toLowerCase().includes(q) ?? false) ||
+        (t.order_number?.toLowerCase().includes(q) ?? false)
+    );
+  }, [visibleTickets, appliedQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(searchedTickets.length / perPage));
+  const pageStart = (currentPage - 1) * perPage;
+  const pagedTickets = searchedTickets.slice(pageStart, pageStart + perPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [appliedQuery, perPage, filterStatus]);
 
   if (selectedId) {
     return (
@@ -3257,11 +3296,39 @@ function SupportTab({ onTicketsChanged }: { onTicketsChanged?: () => void }) {
             {error}
           </div>
         </div>
-      ) : visibleTickets.length === 0 ? (
+      ) : tickets.length === 0 ? (
         <div className="py-16 text-center text-sm text-muted-foreground">
-          No tickets in this view.
+          No tickets yet.
         </div>
       ) : (
+        <>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Input
+            type="search"
+            placeholder="Search by name, email, subject, order # (3+ chars)..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="max-w-sm"
+          />
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Per page</span>
+            <select
+              value={perPage}
+              onChange={(e) => setPerPage(Number(e.target.value))}
+              className="rounded-md border bg-background px-2 py-1 text-xs"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+        </div>
+        {searchedTickets.length === 0 ? (
+          <div className="py-16 text-center text-sm text-muted-foreground">
+            {appliedQuery ? "No tickets match your search." : "No tickets in this view."}
+          </div>
+        ) : (
         <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
@@ -3274,7 +3341,7 @@ function SupportTab({ onTicketsChanged }: { onTicketsChanged?: () => void }) {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {visibleTickets.map((t) => (
+              {pagedTickets.map((t) => (
                 <tr
                   key={t.id}
                   onClick={() => setSelectedId(t.id)}
@@ -3313,6 +3380,40 @@ function SupportTab({ onTicketsChanged }: { onTicketsChanged?: () => void }) {
             </tbody>
           </table>
         </div>
+        )}
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+          <div>
+            {searchedTickets.length === 0
+              ? "No tickets match your search"
+              : `Showing ${pageStart + 1}–${Math.min(pageStart + perPage, searchedTickets.length)} of ${searchedTickets.length}`}
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="h-7 px-2 text-xs"
+              >
+                Previous
+              </Button>
+              <span className="px-2">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                className="h-7 px-2 text-xs"
+              >
+                Next
+              </Button>
+            </div>
+          )}
+        </div>
+        </>
       )}
     </div>
   );
