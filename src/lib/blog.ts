@@ -1,4 +1,5 @@
 import { getSupabase } from "@/lib/supabase";
+import { resolveBlogTokens } from "@/lib/blog-gen/tokens";
 
 export interface BlogPost {
   title: string;
@@ -70,5 +71,9 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
   }
   if (!data) return null;
 
-  return rowToPost(data as DbBlogRow);
+  const post = rowToPost(data as DbBlogRow);
+  // Generated posts embed {{product:<id>}} tokens resolved to live cards here.
+  // No-op for existing posts (they contain no tokens).
+  post.content = await resolveBlogTokens(post.content);
+  return post;
 }
