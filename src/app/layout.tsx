@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/",
     languages: {
-      "en-GB": "https://shimeruknives.co.uk",
+      "en-GB": "https://www.shimeruknives.co.uk",
       "en-US": "https://us.shimeruknives.co.uk",
     },
   },

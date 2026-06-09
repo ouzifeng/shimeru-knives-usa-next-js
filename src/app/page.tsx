@@ -56,7 +56,7 @@ function HomepageJsonLd() {
       availableLanguage: ["English"],
     },
     sameAs: [
-      "https://shimeruknives.co.uk",
+      "https://www.shimeruknives.co.uk",
       "https://www.facebook.com/people/Shimeru-Knives/61579922601854/",
     ],
   };

@@ -10,7 +10,7 @@ export const revalidate = 3600;
 // is mirrored UK<->US, so a post at /blog/<slug> here normally has a sibling
 // at the same path on the other store. We always emit both hreflang entries;
 // Google quietly drops any that 404 (e.g. a US-only post with no UK twin).
-const SIBLING_BASE_URL = "https://shimeruknives.co.uk";
+const SIBLING_BASE_URL = "https://www.shimeruknives.co.uk";
 
 export async function generateStaticParams() {
   const posts = await getAllPosts();
