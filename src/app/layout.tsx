@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/header";
 import { CartProvider } from "@/components/cart-provider";
 import { Footer } from "@/components/footer";
+import { HideOnAdmin } from "@/components/hide-on-admin";
 import { Analytics } from "@/components/analytics";
 import { MetaPixelEvents } from "@/components/meta-pixel";
 import { TikTokPixelEvents } from "@/components/tiktok-pixel";
@@ -69,9 +70,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang={storeConfig.locale.split("-")[0]} className={`${cormorant.variable} ${karla.variable}`}>
       <body className="font-sans antialiased">
         <CartProvider>
-          <Header />
+          <HideOnAdmin>
+            <Header />
+          </HideOnAdmin>
           <main className="min-h-[60vh]">{children}</main>
-          <Footer />
+          <HideOnAdmin>
+            <Footer />
+          </HideOnAdmin>
         </CartProvider>
         <Analytics />
         <Script
