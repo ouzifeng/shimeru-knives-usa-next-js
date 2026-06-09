@@ -3156,6 +3156,8 @@ function SupportTab({ onTicketsChanged }: { onTicketsChanged?: () => void }) {
   const [appliedQuery, setAppliedQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkUpdating, setBulkUpdating] = useState(false);
 
   const loadTickets = useCallback(async () => {
     setLoading(true);
@@ -3222,7 +3224,50 @@ function SupportTab({ onTicketsChanged }: { onTicketsChanged?: () => void }) {
 
   useEffect(() => {
     setCurrentPage(1);
+    setSelectedIds(new Set());
   }, [appliedQuery, perPage, filterStatus]);
+
+  function toggleOne(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const pageIds = pagedTickets.map((t) => t.id);
+  const allOnPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+
+  function toggleAllOnPage() {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allOnPageSelected) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
+  }
+
+  async function bulkSolve() {
+    if (selectedIds.size === 0) return;
+    setBulkUpdating(true);
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map((id) =>
+          fetch(`/api/admin/support/tickets/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "solved" }),
+          })
+        )
+      );
+      setSelectedIds(new Set());
+      await loadTickets();
+      onTicketsChanged?.();
+    } finally {
+      setBulkUpdating(false);
+    }
+  }
 
   if (selectedId) {
     return (
@@ -3324,6 +3369,37 @@ function SupportTab({ onTicketsChanged }: { onTicketsChanged?: () => void }) {
             </select>
           </div>
         </div>
+        {selectedIds.size > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/40 px-4 py-2.5">
+            <span className="text-sm font-medium">
+              {selectedIds.size} selected
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedIds(new Set())}
+                disabled={bulkUpdating}
+                className="h-8 text-xs"
+              >
+                Clear
+              </Button>
+              <Button
+                size="sm"
+                onClick={bulkSolve}
+                disabled={bulkUpdating}
+                className="h-8 gap-1.5 text-xs"
+              >
+                {bulkUpdating ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="size-3.5" />
+                )}
+                Mark solved
+              </Button>
+            </div>
+          </div>
+        )}
         {searchedTickets.length === 0 ? (
           <div className="py-16 text-center text-sm text-muted-foreground">
             {appliedQuery ? "No tickets match your search." : "No tickets in this view."}
@@ -3333,6 +3409,15 @@ function SupportTab({ onTicketsChanged }: { onTicketsChanged?: () => void }) {
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
+                <th className="w-10 px-4 py-2.5 text-left font-medium">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all on page"
+                    checked={allOnPageSelected}
+                    onChange={toggleAllOnPage}
+                    className="size-4 cursor-pointer align-middle accent-foreground"
+                  />
+                </th>
                 <th className="px-4 py-2.5 text-left font-medium">Status</th>
                 <th className="px-4 py-2.5 text-left font-medium">Customer</th>
                 <th className="px-4 py-2.5 text-left font-medium">Subject</th>
@@ -3347,6 +3432,15 @@ function SupportTab({ onTicketsChanged }: { onTicketsChanged?: () => void }) {
                   onClick={() => setSelectedId(t.id)}
                   className="cursor-pointer transition-colors hover:bg-muted/40"
                 >
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ticket ${t.subject || t.id}`}
+                      checked={selectedIds.has(t.id)}
+                      onChange={() => toggleOne(t.id)}
+                      className="size-4 cursor-pointer align-middle accent-foreground"
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${SUPPORT_STATUS_COLOR[t.status]}`}
