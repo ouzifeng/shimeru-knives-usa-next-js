@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { setAdsConversionTarget } from "@/lib/tracking";
 import { captureAttribution } from "@/lib/attribution";
+import { captureAffiliateRef } from "@/lib/affiliate-ref";
 
 declare global {
   interface Window {
@@ -20,6 +21,7 @@ export function Analytics() {
   // Capture UTM params and referrer on first load
   useEffect(() => {
     captureAttribution();
+    captureAffiliateRef();
   }, []);
 
   // Fetch tracking settings and inject gtag script

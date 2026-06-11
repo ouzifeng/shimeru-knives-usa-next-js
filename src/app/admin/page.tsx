@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { InventoryTab } from "@/components/admin/inventory-tab";
 import { SupplierPricesTab } from "@/components/admin/supplier-prices-tab";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import { AffiliatesTab } from "@/components/admin/affiliates-tab";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import type { OrderSyncState, SyncState, WCShippingMethod, WCShippingZone } from "@/lib/types";
@@ -4660,7 +4661,7 @@ function EmailTemplatesTab() {
   );
 }
 
-const ADMIN_TABS = ["dashboard", "orders", "abandoned", "customers", "products", "inventory", "supplier-prices", "funnel", "returns", "waiting-stock", "ambassadors", "support", "email-logs", "email-templates", "email-marketing"] as const;
+const ADMIN_TABS = ["dashboard", "orders", "abandoned", "customers", "products", "inventory", "supplier-prices", "funnel", "returns", "waiting-stock", "ambassadors", "affiliates", "support", "email-logs", "email-templates", "email-marketing"] as const;
 type AdminTab = (typeof ADMIN_TABS)[number];
 
 function AdminPageInner() {
@@ -5213,6 +5214,7 @@ function AdminPageInner() {
       {activeTab === "returns" && <ReturnsTab />}
       {activeTab === "waiting-stock" && <WaitingStockTab />}
       {activeTab === "ambassadors" && <AmbassadorsTab />}
+      {activeTab === "affiliates" && <AffiliatesTab />}
       {activeTab === "support" && <SupportTab onTicketsChanged={refreshSupportCount} />}
       {activeTab === "email-logs" && <EmailLogsTab />}
       {activeTab === "email-templates" && <EmailTemplatesTab />}

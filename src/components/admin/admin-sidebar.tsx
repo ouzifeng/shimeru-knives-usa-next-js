@@ -15,6 +15,7 @@ export type AdminTab =
   | "returns"
   | "waiting-stock"
   | "ambassadors"
+  | "affiliates"
   | "support"
   | "email-logs"
   | "email-templates"
@@ -42,6 +43,7 @@ const NAV_ITEMS: NavItem[] = [
   { kind: "item", key: "returns", label: "Returns" },
   { kind: "item", key: "waiting-stock", label: "Waiting Stock" },
   { kind: "item", key: "ambassadors", label: "Ambassadors" },
+  { kind: "item", key: "affiliates", label: "Affiliates" },
   { kind: "item", key: "support", label: "Support" },
   {
     kind: "group",

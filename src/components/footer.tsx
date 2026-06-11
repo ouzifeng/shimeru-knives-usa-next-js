@@ -39,6 +39,8 @@ export function Footer() {
               <li><Link href="/refund_returns" className="hover:text-background transition-colors">Returns &amp; Refunds</Link></li>
               <li><Link href="/knife-care" className="hover:text-background transition-colors">Knife Care Guide</Link></li>
               <li><Link href="/blog" className="hover:text-background transition-colors">Blog</Link></li>
+              <li><Link href="/affiliate/apply" className="hover:text-background transition-colors">Become an Affiliate</Link></li>
+              <li><Link href="/affiliate/login" className="hover:text-background transition-colors">Affiliate Login</Link></li>
             </ul>
           </div>
 

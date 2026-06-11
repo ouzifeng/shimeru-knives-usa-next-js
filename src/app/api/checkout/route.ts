@@ -26,12 +26,15 @@ interface WCCoupon {
 
 export async function POST(req: NextRequest) {
   try {
-    const { items, couponCode, attribution, funnelSessionId } = (await req.json()) as {
+    const { items, couponCode, attribution, funnelSessionId, affiliateCode } = (await req.json()) as {
       items: CartItem[];
       couponCode?: string;
       attribution?: Record<string, string>;
       funnelSessionId?: string;
+      affiliateCode?: string;
     };
+    const affiliateRef = (affiliateCode ?? "").trim().toUpperCase().slice(0, 32);
+    const validAffiliateRef = /^[A-Z0-9]+$/.test(affiliateRef) ? affiliateRef : "";
 
     if (!items?.length) {
       return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
@@ -188,6 +191,7 @@ export async function POST(req: NextRequest) {
         ...(wcCouponCode && { wc_coupon_code: wcCouponCode }),
         ...(attribution && { attribution: JSON.stringify(attribution) }),
         ...(funnelSessionId && { funnel_session_id: funnelSessionId }),
+        ...(validAffiliateRef && { affiliate_code: validAffiliateRef }),
       },
     };
 

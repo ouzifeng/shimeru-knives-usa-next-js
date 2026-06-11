@@ -8,6 +8,7 @@ import { ukStartOfTodayUTC } from "@/lib/uk-day";
 import { sendTransactionalEmail } from "@/lib/postmark";
 import { renderOrderConfirmed } from "@/lib/email-templates/order-confirmed";
 import { buildOrderConfirmedFromWcOrderId } from "@/lib/email-templates/order-confirmed-data";
+import { createAffiliateCommission } from "@/lib/affiliate-commission";
 import type Stripe from "stripe";
 
 export async function POST(req: Request) {
@@ -75,6 +76,7 @@ export async function POST(req: Request) {
       const attribution = session.metadata?.attribution
         ? JSON.parse(session.metadata.attribution)
         : null;
+      const affiliateCode = session.metadata?.affiliate_code || null;
 
       if (!cartItems.length) {
         console.error("No cart items in session metadata:", session.id);
@@ -266,21 +268,46 @@ export async function POST(req: Request) {
         coupon_code: wcCouponCode || null,
         wc_created: wcCreated,
         attribution: attribution || null,
+        affiliate_code: affiliateCode,
         customer_ip: session.metadata?.customer_ip || null,
         stripe_fee: stripeFee,
         funnel_session_id: session.metadata?.funnel_session_id || null,
         created_at: new Date().toISOString(),
       };
 
+      let savedOrderId: number | null = existingOrder?.id ?? null;
       try {
         if (existingOrder) {
           // Update existing failed row on retry
           await admin.from("orders").update(orderRow).eq("id", existingOrder.id);
         } else {
-          await admin.from("orders").insert(orderRow);
+          const { data: inserted } = await admin
+            .from("orders")
+            .insert(orderRow)
+            .select("id")
+            .single();
+          savedOrderId = inserted?.id ?? null;
         }
       } catch (sbErr) {
         console.error("Failed to save order to Supabase:", sbErr);
+      }
+
+      // ── Affiliate commission ─────────────────────────────────────
+      // 20% (or the affiliate's rate) of product value after discount,
+      // excluding shipping + tax. Pending until the refund hold passes.
+      if (affiliateCode && savedOrderId) {
+        const subtotal = (session.amount_subtotal ?? 0) / 100;
+        const discount = (session.total_details?.amount_discount ?? 0) / 100;
+        const baseAmount = Math.max(0, subtotal - discount);
+        try {
+          await createAffiliateCommission(admin, {
+            orderId: savedOrderId,
+            affiliateCode,
+            baseAmount,
+          });
+        } catch (commErr) {
+          console.error("Failed to create affiliate commission:", commErr);
+        }
       }
 
       if (!wcOrder) {

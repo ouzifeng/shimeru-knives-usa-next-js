@@ -11,6 +11,7 @@ import { trackFunnelEvent, getFunnelSessionId } from "@/lib/funnel";
 import { trackMetaInitiateCheckout } from "@/components/meta-pixel";
 import { trackTikTokInitiateCheckout } from "@/components/tiktok-pixel";
 import { getAttribution, refreshGaClientId } from "@/lib/attribution";
+import { getAffiliateRef } from "@/lib/affiliate-ref";
 
 export default function CheckoutPage() {
   const { items, total } = useCartStore();
@@ -101,6 +102,7 @@ export default function CheckoutPage() {
           couponCode: appliedCoupon?.code,
           attribution: getAttribution(),
           funnelSessionId: getFunnelSessionId(),
+          affiliateCode: getAffiliateRef(),
         }),
       });
       const data = await res.json();
