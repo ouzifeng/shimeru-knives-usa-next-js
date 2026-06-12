@@ -47,3 +47,39 @@ export async function GET(
     products,
   });
 }
+
+// Update the customer's display name. Orders are keyed by email, so we write
+// the chosen name onto every order row for this customer. Useful when orders
+// arrive without a name and we infer one from the billing address.
+export async function PATCH(
+  req: NextRequest,
+  ctx: { params: Promise<{ email: string }> }
+) {
+  const { email: rawEmail } = await ctx.params;
+  const email = decodeURIComponent(rawEmail).toLowerCase();
+
+  let body: { name?: unknown };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const name = typeof body.name === "string" ? body.name.trim() : "";
+  if (!name) {
+    return NextResponse.json({ error: "Name is required" }, { status: 400 });
+  }
+
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("orders")
+    .update({ customer_name: name })
+    .ilike("customer_email", email)
+    .select("id");
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ email, name, updated: data?.length ?? 0 });
+}

@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AlertCircle, ArrowLeft, ExternalLink, Loader2, Mail } from "lucide-react";
+import { AlertCircle, ArrowLeft, Check, ExternalLink, Loader2, Mail, Pencil, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ContactCustomerModal } from "@/components/admin/contact-customer-modal";
 import { formatPrice } from "@/lib/format";
 
@@ -56,6 +57,19 @@ function formatAddress(addr: Record<string, string> | null | undefined): string[
   ].filter((s) => s && s.trim());
 }
 
+// Best-effort name when no order carries a customer_name: take the first/last
+// name off the most recent order's billing (then shipping) address. Orders
+// arrive sorted newest-first, so the first hit is the most recent.
+function guessNameFromOrders(orders: Order[]): string | null {
+  for (const o of orders) {
+    for (const addr of [o.billing_address, o.shipping_address]) {
+      const n = [addr?.first_name, addr?.last_name].filter(Boolean).join(" ").trim();
+      if (n) return n;
+    }
+  }
+  return null;
+}
+
 export default function CustomerDetailPage() {
   const router = useRouter();
   const params = useParams<{ email: string }>();
@@ -64,6 +78,39 @@ export default function CustomerDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [contactOpen, setContactOpen] = useState(false);
   const [contactSentTicketId, setContactSentTicketId] = useState<string | null>(null);
+  const [savedName, setSavedName] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+  const [savingName, setSavingName] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+
+  const saveName = async () => {
+    if (!data) return;
+    const name = nameInput.trim();
+    if (!name) {
+      setNameError("Name can't be empty");
+      return;
+    }
+    setSavingName(true);
+    setNameError(null);
+    try {
+      const res = await fetch(`/api/admin/customers/${encodeURIComponent(data.email)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || "Failed to save name");
+      }
+      setSavedName(name);
+      setEditingName(false);
+    } catch (err) {
+      setNameError(err instanceof Error ? err.message : "Failed to save name");
+    } finally {
+      setSavingName(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -124,7 +171,12 @@ export default function CustomerDetailPage() {
   const abandoned = data.orders.filter((o) => o.status === "abandoned").length;
   const lastPaid = paid[0];
   const firstPaid = paid[paid.length - 1];
-  const displayName = data.orders.find((o) => o.customer_name)?.customer_name || data.email;
+  const knownName =
+    savedName ?? (data.orders.find((o) => o.customer_name)?.customer_name?.trim() || null);
+  const guessedName = guessNameFromOrders(data.orders);
+  const displayName = knownName ?? guessedName ?? data.email;
+  // True when the shown name is only inferred from an address, not confirmed.
+  const isGuessedName = !knownName && Boolean(guessedName);
   const recentShipping =
     lastPaid?.shipping_address ||
     data.orders.find((o) => o.shipping_address)?.shipping_address ||
@@ -149,7 +201,60 @@ export default function CustomerDetailPage() {
       </div>
 
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{displayName}</h1>
+        {editingName ? (
+          <div className="max-w-sm">
+            <div className="flex items-center gap-2">
+              <Input
+                autoFocus
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveName();
+                  if (e.key === "Escape") setEditingName(false);
+                }}
+                placeholder="Customer name"
+                disabled={savingName}
+              />
+              <Button size="sm" onClick={saveName} disabled={savingName} className="gap-1.5">
+                {savingName ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+                Save
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setEditingName(false);
+                  setNameError(null);
+                }}
+                disabled={savingName}
+              >
+                <X className="size-3.5" />
+              </Button>
+            </div>
+            {nameError && <p className="mt-1.5 text-sm text-rose-500">{nameError}</p>}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold tracking-tight">{displayName}</h1>
+            <button
+              onClick={() => {
+                setNameInput(displayName === data.email ? "" : displayName);
+                setNameError(null);
+                setEditingName(true);
+              }}
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label="Edit name"
+              title="Edit name"
+            >
+              <Pencil className="size-4" />
+            </button>
+            {isGuessedName && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-800">
+                Guessed from address
+              </span>
+            )}
+          </div>
+        )}
         <p className="mt-1 text-sm text-muted-foreground">{data.email}</p>
       </div>
 
