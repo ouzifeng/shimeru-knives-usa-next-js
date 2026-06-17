@@ -46,7 +46,7 @@ export function InStockAlternatives({
           <li key={p.id}>
             <Link href={`/product/${p.slug}`} className="group block">
               {p.images[0] && (
-                <div className="aspect-square relative overflow-hidden bg-muted mb-2">
+                <div className="aspect-[4/5] relative overflow-hidden bg-muted mb-2">
                   <Image
                     src={p.images[0].src}
                     alt={p.images[0].alt || p.name}

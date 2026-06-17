@@ -38,7 +38,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
               <div className="divide-y divide-border">
                 {items.map((item) => (
                   <div key={`${item.product.id}-${item.variationId}`} className="flex gap-4 py-5">
-                    <div className="relative w-20 h-20 shrink-0 bg-muted overflow-hidden">
+                    <div className="relative w-20 aspect-[4/5] shrink-0 bg-muted overflow-hidden">
                       {item.product.images[0] && (
                         /* eslint-disable-next-line @next/next/no-img-element */
                         <img

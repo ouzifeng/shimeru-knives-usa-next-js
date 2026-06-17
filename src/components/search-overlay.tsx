@@ -169,7 +169,7 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
                   onClick={() => navigate(`/product/${product.slug}`)}
                   className="flex items-center gap-4 w-full px-5 py-4 text-left hover:bg-muted/50 transition-colors"
                 >
-                  <div className="w-14 h-14 shrink-0 bg-muted overflow-hidden">
+                  <div className="w-14 aspect-[4/5] shrink-0 bg-muted overflow-hidden">
                     {product.images?.[0] && (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img

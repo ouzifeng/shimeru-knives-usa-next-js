@@ -11,7 +11,7 @@ export function ImageGallery({ images, onSale, outOfStock }: { images: WCImage[]
 
   return (
     <div className="space-y-2 sm:space-y-3">
-      <div className="aspect-square relative overflow-hidden bg-muted w-full">
+      <div className={`${selected === 0 ? "aspect-[4/5]" : "aspect-square"} relative overflow-hidden bg-muted w-full`}>
         <Image
           src={images[selected].src}
           alt={images[selected].alt || "Product image"}

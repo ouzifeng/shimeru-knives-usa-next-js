@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { getProductBySlug, getProductAttributes, getProductSeo, getRelatedProducts, getProductSpecs, getInStockAlternatives, getRestockEta } from "@/lib/products";
 
 export const revalidate = 3600;
-import { ProductSpecsGrid } from "@/components/product-specs";
+import { ProductInfoAccordion } from "@/components/product-info-accordion";
 import { ProductCard } from "@/components/product-card";
 import { AddToCartButton } from "@/components/add-to-cart-button";
 import { ImageGallery } from "@/components/image-gallery";
@@ -14,7 +14,6 @@ import { StarRating } from "@/components/star-rating";
 import { formatPrice } from "@/lib/format";
 import { storeConfig } from "../../../../store.config";
 import type { Product } from "@/lib/types";
-import { KnifeCareModal } from "@/components/knife-care-modal";
 import { KnifeGuideCta } from "@/components/knife-guide-cta";
 import { ViewContentTracker } from "@/components/view-content-tracker";
 import { RecentlyViewedTracker } from "@/components/recently-viewed-tracker";
@@ -350,28 +349,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               />
             )}
 
-            {/* Knife specs */}
-            {specs && (
-              <div className="border-t border-border pt-5 sm:pt-6">
-                <h2 className="text-sm tracking-[0.2em] uppercase text-muted-foreground mb-4">Specifications</h2>
-                <ProductSpecsGrid specs={specs} />
-              </div>
-            )}
-
-            {/* Trust signals */}
-            <div className="border-t border-border pt-5 sm:pt-6 grid grid-cols-2 gap-3 sm:gap-4">
-              {[
-                { title: "Free US Shipping", desc: "USPS Priority Mail" },
-                { title: "60-Day Returns", desc: "No questions asked" },
-                { title: "Secure Payment", desc: "Stripe encrypted checkout" },
-              ].map((item) => (
-                <div key={item.title}>
-                  <p className="text-base font-medium">{item.title}</p>
-                  <p className="text-sm text-muted-foreground">{item.desc}</p>
-                </div>
-              ))}
-              <KnifeCareModal />
-            </div>
+            {/* Product info accordion (shipping, returns, payment, specs, care) */}
+            <ProductInfoAccordion specs={specs} />
           </div>
         </div>
 

@@ -76,7 +76,7 @@ export function RecentlyViewed({ currentProductId }: { currentProductId: number 
         {products.slice(0, 4).map((product) => (
           <Link key={product.id} href={`/product/${product.slug}`} className="group block">
             {product.image && (
-              <div className="aspect-square relative overflow-hidden bg-muted mb-3">
+              <div className="aspect-[4/5] relative overflow-hidden bg-muted mb-3">
                 <Image
                   src={product.image}
                   alt={product.image_alt}
