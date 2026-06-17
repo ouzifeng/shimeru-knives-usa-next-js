@@ -78,7 +78,7 @@ function ProductListJsonLd({ products, total, page, category }: {
     numberOfItems: total,
     itemListElement: products.map((p, i) => ({
       "@type": "ListItem",
-      position: (page - 1) * 24 + i + 1,
+      position: (page - 1) * 100 + i + 1,
       url: `${storeConfig.url}/product/${p.slug}`,
       name: p.name,
     })),
@@ -120,7 +120,7 @@ export default async function ProductsPage({ searchParams }: Props) {
     on_sale: params.on_sale === "true" || undefined,
     sort: (params.sort as ProductFilter["sort"]) || undefined,
     page: params.page ? parseInt(params.page) : 1,
-    per_page: 24,
+    per_page: 100,
   };
 
   const attributes: Record<string, string[]> = {};
@@ -209,7 +209,7 @@ export default async function ProductsPage({ searchParams }: Props) {
                 <ProductCard key={product.id} product={product} priority={i < 6} />
               ))}
             </div>
-            <Pagination total={total} perPage={24} currentPage={filters.page || 1} />
+            <Pagination total={total} perPage={100} currentPage={filters.page || 1} />
             {products.length === 0 && (
               <div className="text-center py-20">
                 <p className="font-serif text-2xl text-muted-foreground mb-2">No knives found</p>
