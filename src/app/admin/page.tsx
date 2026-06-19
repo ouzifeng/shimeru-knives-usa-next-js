@@ -4559,7 +4559,7 @@ function EmailTemplatesTab() {
     {
       id: "order-refunded",
       name: "Order refunded",
-      description: "Fires when the WC status transitions to refunded.",
+      description: "Fires from the Stripe webhook on a full refund (or a WC refund transition).",
       status: "todo" as const,
       previewUrl: null,
       sendTestUrl: null,

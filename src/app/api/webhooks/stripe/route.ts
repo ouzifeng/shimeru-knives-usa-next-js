@@ -9,7 +9,11 @@ import { sendTransactionalEmail } from "@/lib/postmark";
 import { renderOrderConfirmed } from "@/lib/email-templates/order-confirmed";
 import { buildOrderConfirmedFromWcOrderId } from "@/lib/email-templates/order-confirmed-data";
 import { renderOrderPartiallyRefunded } from "@/lib/email-templates/order-partially-refunded";
-import { buildPartialRefundFromWcOrderId } from "@/lib/email-templates/order-status-data";
+import { renderOrderRefunded } from "@/lib/email-templates/order-refunded";
+import {
+  buildPartialRefundFromWcOrderId,
+  buildOrderStatusFromWcOrderId,
+} from "@/lib/email-templates/order-status-data";
 import { createAffiliateCommission } from "@/lib/affiliate-commission";
 import type Stripe from "stripe";
 
@@ -561,10 +565,12 @@ export async function POST(req: Request) {
       // redeliver the same event) and build the customer email.
       const { data: order } = await admin
         .from("orders")
-        .select("id, wc_order_id, customer_email, refunded_amount")
+        .select("id, wc_order_id, customer_email, refunded_amount, status")
         .eq("stripe_payment_intent", paymentIntent)
         .limit(1)
         .maybeSingle();
+
+      const wasAlreadyRefunded = order?.status === "refunded";
 
       await admin
         .from("orders")
@@ -575,34 +581,61 @@ export async function POST(req: Request) {
         })
         .eq("stripe_payment_intent", paymentIntent);
 
-      // Only email on a partial refund whose total actually grew — this skips
-      // duplicate webhook deliveries and the final "now fully refunded" event.
-      if (
-        !isFullRefund &&
-        order?.customer_email &&
-        order.wc_order_id &&
-        refundedAmount > Number(order.refunded_amount || 0)
-      ) {
-        try {
-          const built = await buildPartialRefundFromWcOrderId(order.wc_order_id, refundedAmount);
-          if (built.ok) {
-            const { subject, html, text } = renderOrderPartiallyRefunded(built.data);
-            const sent = await sendTransactionalEmail({
-              to: order.customer_email,
-              subject,
-              html,
-              text,
-              tag: "order-partially-refunded",
-              metadata: { order: String(order.wc_order_id) },
-            });
-            if (!sent.ok) {
-              console.error("Partial refund email failed:", order.wc_order_id, sent.error);
+      if (order?.customer_email && order.wc_order_id) {
+        if (isFullRefund) {
+          // Stripe refunds don't propagate to WooCommerce, so the WC status
+          // sync never sees a "refunded" transition and never fires the
+          // full-refund email — so we send it here. Guard against Stripe
+          // re-delivering the same event by skipping if the order was already
+          // marked fully refunded (the sync also defers to this `status`).
+          if (!wasAlreadyRefunded) {
+            try {
+              const built = await buildOrderStatusFromWcOrderId(order.wc_order_id);
+              if (built.ok) {
+                const { subject, html, text } = renderOrderRefunded(built.data);
+                const sent = await sendTransactionalEmail({
+                  to: order.customer_email,
+                  subject,
+                  html,
+                  text,
+                  tag: "order-refunded",
+                  metadata: { order: String(order.wc_order_id) },
+                });
+                if (!sent.ok) {
+                  console.error("Refund email failed:", order.wc_order_id, sent.error);
+                }
+              } else {
+                console.error("Could not build refund email:", order.wc_order_id, built.reason);
+              }
+            } catch (emailErr) {
+              console.error("Refund email threw:", order.wc_order_id, emailErr);
             }
-          } else {
-            console.error("Could not build partial refund email:", order.wc_order_id, built.reason);
           }
-        } catch (emailErr) {
-          console.error("Partial refund email threw:", order.wc_order_id, emailErr);
+        } else if (refundedAmount > Number(order.refunded_amount || 0)) {
+          // Partial refund whose total actually grew — skips duplicate webhook
+          // deliveries. (A partial refund never flips the WC status, so the
+          // sync never covers this case.)
+          try {
+            const built = await buildPartialRefundFromWcOrderId(order.wc_order_id, refundedAmount);
+            if (built.ok) {
+              const { subject, html, text } = renderOrderPartiallyRefunded(built.data);
+              const sent = await sendTransactionalEmail({
+                to: order.customer_email,
+                subject,
+                html,
+                text,
+                tag: "order-partially-refunded",
+                metadata: { order: String(order.wc_order_id) },
+              });
+              if (!sent.ok) {
+                console.error("Partial refund email failed:", order.wc_order_id, sent.error);
+              }
+            } else {
+              console.error("Could not build partial refund email:", order.wc_order_id, built.reason);
+            }
+          } catch (emailErr) {
+            console.error("Partial refund email threw:", order.wc_order_id, emailErr);
+          }
         }
       }
     } catch (err) {

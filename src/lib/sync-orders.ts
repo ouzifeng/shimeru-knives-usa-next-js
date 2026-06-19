@@ -145,13 +145,20 @@ export async function syncOrders(): Promise<{
       const wcIds = orders.map((o) => o.id);
       const { data: existingRows } = await admin
         .from("orders")
-        .select("wc_order_id, wc_status, customer_email")
+        .select("wc_order_id, wc_status, customer_email, status")
         .in("wc_order_id", wcIds);
 
-      const existingMap = new Map<number, { status: string | null; email: string | null }>(
+      const existingMap = new Map<
+        number,
+        { status: string | null; email: string | null; stripeStatus: string | null }
+      >(
         (existingRows || []).map((r) => [
           r.wc_order_id as number,
-          { status: r.wc_status as string | null, email: r.customer_email as string | null },
+          {
+            status: r.wc_status as string | null,
+            email: r.customer_email as string | null,
+            stripeStatus: r.status as string | null,
+          },
         ])
       );
 
@@ -186,7 +193,14 @@ export async function syncOrders(): Promise<{
             await sendShippedEmail(order.id, existing.email);
           } else if (order.status === "cancelled" && previous !== "cancelled") {
             await sendStatusEmail("cancelled", order.id, existing.email);
-          } else if (order.status === "refunded" && previous !== "refunded") {
+          } else if (
+            order.status === "refunded" &&
+            previous !== "refunded" &&
+            existing.stripeStatus !== "refunded"
+          ) {
+            // Skip if the Stripe webhook already marked this order refunded and
+            // sent the email — otherwise a refund recorded in both Stripe and WC
+            // would double-send.
             await sendStatusEmail("refunded", order.id, existing.email);
           }
         }
