@@ -10,13 +10,16 @@ type OrderRow = {
   customer_name: string | null;
   status: string;
   amount_total: number;
+  refunded_amount: number | null;
   created_at: string;
   line_items: Array<{ pid: number; qty: number }> | null;
   shipping_address: Record<string, string> | null;
   billing_address: Record<string, string> | null;
 };
 
-const PAID_STATUSES = new Set(["completed", "processing", "on-hold"]);
+// partially_refunded is still a real sale (goods kept); we net the refund out
+// of total_spend below. A fully refunded order is counted under refunded_orders.
+const PAID_STATUSES = new Set(["completed", "processing", "on-hold", "partially_refunded"]);
 
 async function fetchAllOrderRows(sb: ReturnType<typeof getSupabaseAdmin>) {
   const PAGE = 1000;
@@ -26,7 +29,7 @@ async function fetchAllOrderRows(sb: ReturnType<typeof getSupabaseAdmin>) {
     const { data, error } = await sb
       .from("orders")
       .select(
-        "customer_email, customer_name, status, amount_total, created_at, line_items, shipping_address, billing_address"
+        "customer_email, customer_name, status, amount_total, refunded_amount, created_at, line_items, shipping_address, billing_address"
       )
       .order("created_at", { ascending: false })
       .range(from, from + PAGE - 1);
@@ -92,7 +95,7 @@ export async function GET() {
 
     if (PAID_STATUSES.has(o.status)) {
       row.paid_orders += 1;
-      row.total_spend += Number(o.amount_total) || 0;
+      row.total_spend += (Number(o.amount_total) || 0) - (Number(o.refunded_amount) || 0);
       const country =
         o.shipping_address?.country || o.billing_address?.country || null;
       if (!row.shipping_country && country) row.shipping_country = country;

@@ -15,6 +15,7 @@ type Order = {
   customer_email: string | null;
   customer_name: string | null;
   amount_total: number;
+  refunded_amount: number | null;
   currency: string;
   status: string;
   wc_status: string | null;
@@ -163,9 +164,10 @@ export default function CustomerDetailPage() {
     );
   }
 
-  const PAID = new Set(["completed", "processing", "on-hold"]);
+  // partially_refunded is still a real sale; net the refunded cash out of LTV.
+  const PAID = new Set(["completed", "processing", "on-hold", "partially_refunded"]);
   const paid = data.orders.filter((o) => PAID.has(o.status));
-  const ltv = paid.reduce((s, o) => s + Number(o.amount_total), 0);
+  const ltv = paid.reduce((s, o) => s + Number(o.amount_total) - Number(o.refunded_amount || 0), 0);
   const aov = paid.length > 0 ? ltv / paid.length : 0;
   const refunded = data.orders.filter((o) => o.status === "refunded").length;
   const abandoned = data.orders.filter((o) => o.status === "abandoned").length;

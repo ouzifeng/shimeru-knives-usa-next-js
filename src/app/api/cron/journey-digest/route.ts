@@ -34,11 +34,17 @@ type FunnelEvent = {
   created_at: string;
 };
 
+// A partially refunded order is still a conversion; revenue nets the refund out.
+const isConvertedStatus = (s: string) => s === "completed" || s === "partially_refunded";
+const orderNetRevenue = (o: { amount_total: number | null; refunded_amount?: number | null }) =>
+  (Number(o.amount_total) || 0) - (Number(o.refunded_amount) || 0);
+
 type Order = {
   id: number;
   wc_order_id: number | null;
   status: string;
   amount_total: number | null;
+  refunded_amount: number | null;
   customer_email: string | null;
   coupon_code: string | null;
   attribution: { utm_source?: string; utm_medium?: string; utm_campaign?: string } | null;
@@ -86,7 +92,7 @@ export async function GET(req: NextRequest) {
       .order("created_at", { ascending: true }),
     sb
       .from("orders")
-      .select("id, wc_order_id, status, amount_total, customer_email, coupon_code, attribution, line_items, funnel_session_id, ip, created_at")
+      .select("id, wc_order_id, status, amount_total, refunded_amount, customer_email, coupon_code, attribution, line_items, funnel_session_id, ip, created_at")
       .gte("created_at", sinceIso),
     sb.from("products").select("id, name, slug, sku").eq("status", "publish"),
   ]);
@@ -194,7 +200,7 @@ export async function GET(req: NextRequest) {
 
     const order = orderBySession.get(sid) || null;
     let outcome: "completed" | "abandoned_payment" | "abandoned_checkout" | "abandoned_cart" | "browsing";
-    if (order && order.status === "completed") outcome = "completed";
+    if (order && isConvertedStatus(order.status)) outcome = "completed";
     else if (evs.some((e) => e.event === "payment_started")) outcome = "abandoned_payment";
     else if (evs.some((e) => e.event === "checkout_viewed")) outcome = "abandoned_checkout";
     else if (evs.some((e) => e.event === "add_to_cart")) outcome = "abandoned_cart";
@@ -211,7 +217,7 @@ export async function GET(req: NextRequest) {
       landing_path: landingPath,
       outcome,
       order_id: order?.wc_order_id ?? null,
-      order_value: order?.amount_total != null ? Number(order.amount_total) : null,
+      order_value: order?.amount_total != null ? orderNetRevenue(order) : null,
       events: evs.map((e) => ({
         ts: e.created_at,
         event: e.event,
@@ -225,7 +231,7 @@ export async function GET(req: NextRequest) {
 
   // Per-product purchases come from completed orders' line items
   for (const o of cleanOrders) {
-    if (o.status !== "completed" || !Array.isArray(o.line_items)) continue;
+    if (!isConvertedStatus(o.status) || !Array.isArray(o.line_items)) continue;
     for (const li of o.line_items) {
       if (!li.product_id) continue;
       const cur = productBuys.get(li.product_id) || { qty: 0, revenue: 0 };
@@ -275,11 +281,11 @@ export async function GET(req: NextRequest) {
     if (evs.some((e) => e.event === "checkout_viewed")) stageSessions.checkout.add(sid);
     if (evs.some((e) => e.event === "payment_started")) stageSessions.pay_start.add(sid);
     const ord = orderBySession.get(sid);
-    if (ord && ord.status === "completed") stageSessions.completed.add(sid);
+    if (ord && isConvertedStatus(ord.status)) stageSessions.completed.add(sid);
   }
 
-  const completedOrders = cleanOrders.filter((o) => o.status === "completed");
-  const totalRevenue = completedOrders.reduce((s, o) => s + (Number(o.amount_total) || 0), 0);
+  const completedOrders = cleanOrders.filter((o) => isConvertedStatus(o.status));
+  const totalRevenue = completedOrders.reduce((s, o) => s + orderNetRevenue(o), 0);
   const aov = completedOrders.length ? totalRevenue / completedOrders.length : 0;
 
   const emailCounts = new Map<string, number>();

@@ -389,7 +389,7 @@ export async function getInStockAlternatives(
     .from("orders")
     .select("line_items")
     .gte("created_at", cutoff)
-    .in("status", ["completed", "processing"]);
+    .in("status", ["completed", "processing", "partially_refunded"]);
 
   const candidateSet = new Set(candidateIds);
   const sales = new Map<number, number>();

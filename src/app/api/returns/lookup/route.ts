@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Must be a completed order
-  if (order.status !== "completed") {
+  // Must be a completed (or partially refunded) order
+  if (order.status !== "completed" && order.status !== "partially_refunded") {
     return NextResponse.json(
       { error: "This order is not eligible for a return." },
       { status: 400 }

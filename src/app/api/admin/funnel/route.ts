@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
       .select("*", { count: "exact", head: true });
 
     if (event === "payment_completed") {
-      query = query.eq("status", "completed");
+      query = query.in("status", ["completed", "partially_refunded"]);
     } else {
       query = query.eq("event", event);
     }

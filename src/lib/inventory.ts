@@ -186,8 +186,9 @@ async function calculateVelocities(
   const cutoff30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const cutoff7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  // We only care about completed/processing orders (not cancelled, refunded, etc.)
-  const completedStatuses = ["completed", "processing"];
+  // We only care about orders whose goods shipped (not cancelled, fully refunded,
+  // etc.) — partially_refunded still shipped its units, so it counts for velocity.
+  const completedStatuses = ["completed", "processing", "partially_refunded"];
 
   const { data: orders, error } = await sb
     .from("orders")

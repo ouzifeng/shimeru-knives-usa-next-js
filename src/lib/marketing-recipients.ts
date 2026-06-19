@@ -12,7 +12,7 @@ import { getSupabaseAdmin } from "./supabase";
 
 export type Segment = "all" | "vip" | "repeat" | "new" | "abandoned-only";
 
-const PAID_STATUSES = new Set(["completed", "processing", "on-hold"]);
+const PAID_STATUSES = new Set(["completed", "processing", "on-hold", "partially_refunded"]);
 
 export type Recipient = {
   email: string;

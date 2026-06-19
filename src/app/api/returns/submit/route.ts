@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     .ilike("customer_email", email.trim())
     .single();
 
-  if (!order || order.status !== "completed") {
+  if (!order || (order.status !== "completed" && order.status !== "partially_refunded")) {
     return NextResponse.json(
       { error: "Order not found or not eligible." },
       { status: 400 }

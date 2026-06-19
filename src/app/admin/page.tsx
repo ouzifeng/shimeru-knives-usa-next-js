@@ -192,7 +192,9 @@ function calcOrderCost(
   costByProductId: CostLookup,
   costByVariationId: CostLookup,
 ): number {
-  if (order.status !== "completed" || !order.line_items) return 0;
+  // A partially refunded order still shipped its goods, so COGS still applies.
+  if ((order.status !== "completed" && order.status !== "partially_refunded") || !order.line_items)
+    return 0;
   let variable = 0;
   for (const li of order.line_items) {
     const cost = (li.vid && costByVariationId[li.vid]) || costByProductId[li.pid] || null;
@@ -400,7 +402,7 @@ function OrdersTab() {
       if (o.status === "abandoned") return false;
       const d = toLondon(o.created_at);
       if (d < from || d > to) return false;
-      if (tpFilter === "to_review") return o.status === "completed" && !!o.customer_email && !o.tp_invite;
+      if (tpFilter === "to_review") return (o.status === "completed" || o.status === "partially_refunded") && !!o.customer_email && !o.tp_invite;
       if (tpFilter === "reviewed") return o.tp_invite?.status === "sent";
       if (tpFilter === "skipped") return o.tp_invite?.status === "skipped";
       return true;
@@ -429,8 +431,15 @@ function OrdersTab() {
   useEffect(() => {
     setCurrentPage(1);
   }, [appliedQuery, perPage, dateFilter, tpFilter, customFrom, customTo]);
-  const completedOrders = orders.filter((o) => o.status === "completed");
-  const totalRevenue = completedOrders.reduce((sum, o) => sum + Number(o.amount_total), 0);
+  // Count completed AND partially refunded orders as sales; net the refunded
+  // cash out of revenue (a fully refunded order is excluded — its net is ~$0).
+  const completedOrders = orders.filter(
+    (o) => o.status === "completed" || o.status === "partially_refunded"
+  );
+  const totalRevenue = completedOrders.reduce(
+    (sum, o) => sum + Number(o.amount_total) - Number(o.refunded_amount || 0),
+    0
+  );
 
   // Variable costs: COGS + fulfillment per order
   const totalVariableCost = completedOrders.reduce(
@@ -764,7 +773,7 @@ function OrdersTab() {
                       <div className="text-xs text-muted-foreground">{order.customer_email || ""}</div>
                     </td>
                     <td className="px-4 py-3">
-                      {order.status === "completed" && order.customer_email ? (
+                      {(order.status === "completed" || order.status === "partially_refunded") && order.customer_email ? (
                         order.tp_invite ? (
                           <span
                             className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ${
