@@ -856,6 +856,8 @@ function OrdersTab() {
                           ? { bg: "bg-emerald-50 text-emerald-700", icon: <CheckCircle2 className="size-3" />, label: "Created" }
                           : s === "refunded"
                           ? { bg: "bg-amber-50 text-amber-700", icon: <RotateCcw className="size-3" />, label: "Refunded" }
+                          : s === "partially_refunded"
+                          ? { bg: "bg-amber-50 text-amber-700", icon: <RotateCcw className="size-3" />, label: "Partially refunded" }
                           : s === "disputed"
                           ? { bg: "bg-purple-50 text-purple-700", icon: <ShieldAlert className="size-3" />, label: "Disputed" }
                           : s === "abandoned"
@@ -4558,6 +4560,14 @@ function EmailTemplatesTab() {
       id: "order-refunded",
       name: "Order refunded",
       description: "Fires when the WC status transitions to refunded.",
+      status: "todo" as const,
+      previewUrl: null,
+      sendTestUrl: null,
+    },
+    {
+      id: "order-partially-refunded",
+      name: "Order partially refunded",
+      description: "Fires from the Stripe webhook on a partial refund (charge.refunded with amount remaining).",
       status: "todo" as const,
       previewUrl: null,
       sendTestUrl: null,

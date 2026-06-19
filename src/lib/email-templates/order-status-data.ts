@@ -12,6 +12,16 @@ export type OrderStatusData = {
   totalLabel: string; // formatted order total, e.g. "$69.99"
 };
 
+// Partial-refund email needs both the amount refunded *and* the original order
+// total, since the two differ (that's the whole point of a partial refund).
+export type PartialRefundData = {
+  orderNumber: string;
+  customerFirstName: string;
+  items: { name: string; quantity: number }[];
+  refundedLabel: string; // amount refunded so far, formatted, e.g. "$20.00"
+  orderTotalLabel: string; // original order total, formatted, e.g. "$69.99"
+};
+
 type LineItem = { pid: number; qty: number; vid?: number; price?: number };
 type ProductRow = { id: number; name: string };
 
@@ -114,4 +124,53 @@ export async function buildOrderStatusFromLatestOrder(
     return { ok: false, reason: "No order in Supabase yet to base the preview on." };
   }
   return buildFromOrderRow(latest);
+}
+
+/** Live send: build the partial-refund email for a WC order id. The refunded
+ *  amount comes from the Stripe charge (cumulative amount_refunded), not the
+ *  order row, so it's passed in by the caller. */
+export async function buildPartialRefundFromWcOrderId(
+  wcOrderId: number,
+  refundedAmount: number
+): Promise<{ ok: true; data: PartialRefundData } | { ok: false; reason: string }> {
+  const supabase = getSupabaseAdmin();
+  const { data: order } = await supabase
+    .from("orders")
+    .select(ORDER_SELECT)
+    .eq("wc_order_id", wcOrderId)
+    .limit(1)
+    .maybeSingle();
+
+  if (!order) {
+    return { ok: false, reason: `No Supabase order found for WC order #${wcOrderId}.` };
+  }
+
+  const lineItems = (order.line_items as LineItem[] | null) ?? [];
+  const pids = Array.from(new Set(lineItems.map((li) => li.pid))).filter(Boolean);
+  const { data: products } = await supabase
+    .from("products")
+    .select("id, name")
+    .in("id", pids);
+
+  const productMap = new Map<number, ProductRow>(
+    (products ?? []).map((p) => [p.id as number, p as ProductRow])
+  );
+
+  const items = lineItems.map((li) => ({
+    name: productMap.get(li.pid)?.name ?? `Product #${li.pid}`,
+    quantity: li.qty || 1,
+  }));
+
+  const firstName = (order.customer_name || "Friend").split(/\s+/)[0] || "Friend";
+
+  return {
+    ok: true,
+    data: {
+      orderNumber: String(order.wc_order_id ?? order.id),
+      customerFirstName: firstName,
+      items,
+      refundedLabel: formatPrice(refundedAmount),
+      orderTotalLabel: formatPrice(Number(order.amount_total ?? 0)),
+    },
+  };
 }
