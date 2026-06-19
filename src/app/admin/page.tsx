@@ -123,6 +123,7 @@ interface Order {
   amount_total: number;
   currency: string;
   status: string;
+  refunded_amount: number | null;
   wc_created: boolean;
   line_items: { pid: number; qty: number; vid?: number; price?: number }[] | null;
   coupon_code: string | null;
@@ -818,7 +819,23 @@ function OrdersTab() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-right font-medium">
-                      {formatPrice(Number(order.amount_total))}
+                      {(() => {
+                        const refunded = Number(order.refunded_amount || 0);
+                        const isRefund =
+                          order.status === "refunded" || order.status === "partially_refunded";
+                        if (isRefund && refunded > 0) {
+                          const net = Math.max(0, Number(order.amount_total) - refunded);
+                          return (
+                            <span className="inline-flex items-baseline gap-1.5">
+                              <span className="text-muted-foreground line-through">
+                                {formatPrice(Number(order.amount_total))}
+                              </span>
+                              <span>{formatPrice(net)}</span>
+                            </span>
+                          );
+                        }
+                        return formatPrice(Number(order.amount_total));
+                      })()}
                     </td>
                     <td className="px-4 py-3">
                       {order.attribution ? (

@@ -32,6 +32,9 @@ type Tracking = {
 
 type SupabaseOverlay = {
   id: number;
+  status: string | null;
+  refunded_amount: number | null;
+  refunded_at: string | null;
   stripe_session_id: string | null;
   stripe_payment_intent: string | null;
   stripe_fee: number | null;
@@ -178,8 +181,29 @@ export default function AdminOrderDetailPage() {
     );
   }
 
-  const statusClass = STATUS_COLOR[data.status] ?? "bg-muted text-muted-foreground";
-  const refundedTotal = data.refunds.reduce((sum, r) => sum + Math.abs(Number(r.total) || 0), 0);
+  // Stripe refunds don't propagate to WooCommerce, so the WC status/refunds are
+  // stale for them. Supabase carries the payment truth (refunded /
+  // partially_refunded / disputed) — prefer it so this page always shows the
+  // latest status, and fold the Stripe-side refunded amount into the totals.
+  const REFUND_STATUS_LABEL: Record<string, string> = {
+    partially_refunded: "Partially refunded",
+    refunded: "Refunded",
+    disputed: "Disputed",
+  };
+  const REFUND_STATUS_COLOR: Record<string, string> = {
+    partially_refunded: "bg-amber-100 text-amber-800",
+    refunded: "bg-rose-100 text-rose-800",
+    disputed: "bg-purple-100 text-purple-800",
+  };
+  const sbStatus = data.supabase?.status ?? null;
+  const displayStatus = (sbStatus && REFUND_STATUS_LABEL[sbStatus]) || data.status;
+  const statusClass =
+    (sbStatus && REFUND_STATUS_COLOR[sbStatus]) ||
+    STATUS_COLOR[data.status] ||
+    "bg-muted text-muted-foreground";
+  const wcRefundTotal = data.refunds.reduce((sum, r) => sum + Math.abs(Number(r.total) || 0), 0);
+  const refundedTotal = Math.max(wcRefundTotal, Number(data.supabase?.refunded_amount || 0));
+  const netTotal = Math.max(0, Number(data.total) - refundedTotal);
   const wcAdminUrl = `${process.env.NEXT_PUBLIC_WORDPRESS_URL || ""}/wp-admin/post.php?post=${data.id}&action=edit`;
   const customerEmail = data.billing?.email || "";
   const customerFullName = [data.billing?.first_name, data.billing?.last_name]
@@ -245,9 +269,18 @@ export default function AdminOrderDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium uppercase tracking-wide ${statusClass}`}>
-            {data.status}
+            {displayStatus}
           </span>
-          <span className="text-2xl font-semibold tabular-nums">{formatPrice(Number(data.total))}</span>
+          {refundedTotal > 0 ? (
+            <span className="inline-flex items-baseline gap-1.5">
+              <span className="text-base font-normal text-muted-foreground line-through tabular-nums">
+                {formatPrice(Number(data.total))}
+              </span>
+              <span className="text-2xl font-semibold tabular-nums">{formatPrice(netTotal)}</span>
+            </span>
+          ) : (
+            <span className="text-2xl font-semibold tabular-nums">{formatPrice(Number(data.total))}</span>
+          )}
         </div>
       </div>
 
@@ -311,10 +344,16 @@ export default function AdminOrderDetailPage() {
                 <span className="tabular-nums">{formatPrice(Number(data.total))}</span>
               </div>
               {refundedTotal > 0 && (
-                <div className="flex justify-between text-rose-700">
-                  <span>Refunded</span>
-                  <span className="tabular-nums">−{formatPrice(refundedTotal)}</span>
-                </div>
+                <>
+                  <div className="flex justify-between text-rose-700">
+                    <span>Refunded</span>
+                    <span className="tabular-nums">−{formatPrice(refundedTotal)}</span>
+                  </div>
+                  <div className="flex justify-between font-semibold">
+                    <span>Net charged</span>
+                    <span className="tabular-nums">{formatPrice(netTotal)}</span>
+                  </div>
+                </>
               )}
             </div>
           </section>

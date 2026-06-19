@@ -125,6 +125,9 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ wcOrderId:
     supabase: supabaseOrder
       ? {
           id: supabaseOrder.id,
+          status: supabaseOrder.status,
+          refunded_amount: supabaseOrder.refunded_amount,
+          refunded_at: supabaseOrder.refunded_at,
           stripe_session_id: supabaseOrder.stripe_session_id,
           stripe_payment_intent: supabaseOrder.stripe_payment_intent,
           stripe_fee: supabaseOrder.stripe_fee,
