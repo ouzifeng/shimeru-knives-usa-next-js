@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getProductBySlug, getProductAttributes, getProductSeo, getRelatedProducts, getProductSpecs, getInStockAlternatives, getRestockEta } from "@/lib/products";
+import { getProductBySlug, getProductAttributes, getProductSeo, getRelatedProducts, getProductSpecs, getInStockAlternatives, getRestockEta, getSetSiblings } from "@/lib/products";
+import { SetSwitcher } from "@/components/set-switcher";
 
 export const revalidate = 3600;
 import { ProductInfoAccordion } from "@/components/product-info-accordion";
@@ -201,7 +202,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const [attributes, seo, relatedProducts, specs, inStockAlternatives, restockEta] = await Promise.all([
+  const isKnifeSet = product.categories?.some((c) => c.slug === "knife-sets") ?? false;
+
+  const [attributes, seo, relatedProducts, specs, inStockAlternatives, restockEta, setSiblings] = await Promise.all([
     product.type === "variable" ? getProductAttributes(product.id) : Promise.resolve([]),
     getProductSeo(product.id),
     getRelatedProducts(product.id, product.categories?.[0]?.slug),
@@ -212,6 +215,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     product.stock_status === "outofstock"
       ? getRestockEta(product.id)
       : Promise.resolve(null),
+    isKnifeSet ? getSetSiblings("knife-sets") : Promise.resolve([]),
   ]);
 
   const restockEtaDays = restockEta
@@ -292,6 +296,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               </div>
 
             </div>
+
+            {isKnifeSet && setSiblings.length > 1 && (
+              <SetSwitcher sets={setSiblings} currentSlug={product.slug} />
+            )}
 
             {/* Stock */}
             <div className="flex items-center gap-2">

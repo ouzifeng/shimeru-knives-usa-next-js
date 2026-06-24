@@ -508,6 +508,41 @@ export async function getRelatedProducts(productId: number, categorySlug?: strin
   return related.map(decodeProductName);
 }
 
+/** Sibling products in a category, as lightweight swatches (slug + name +
+ *  first image). Used to show the knife sets as switchable thumbnails on each
+ *  set's page even though they're separate products. */
+export async function getSetSiblings(
+  categorySlug: string
+): Promise<{ slug: string; name: string; image: string | null }[]> {
+  const { data: catProducts } = await supabase
+    .from("product_categories")
+    .select("product_id")
+    .eq("category_slug", categorySlug);
+
+  const ids = catProducts?.map((r) => r.product_id) || [];
+  if (!ids.length) return [];
+
+  const { data } = await supabase
+    .from("products")
+    .select("name, slug, images")
+    .in("id", ids)
+    .eq("status", "publish")
+    .order("name", { ascending: true });
+
+  // The steak set (Suma) is also tagged into knife-sets but is a different
+  // product, not a colourway of the 8-piece set, so keep it out of the swatches.
+  return (data || [])
+    .filter((p) => !/steak/i.test((p.name as string) || ""))
+    .map((p) => {
+      const imgs = p.images as { src?: string }[] | null;
+      return {
+        slug: p.slug as string,
+        name: decodeEntities((p.name as string) || ""),
+        image: imgs?.[0]?.src || null,
+      };
+    });
+}
+
 export async function getProductAttributes(productId: number): Promise<WCAttribute[]> {
   const { data } = await supabase
     .from("product_attributes")
