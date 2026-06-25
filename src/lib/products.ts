@@ -513,7 +513,7 @@ export async function getRelatedProducts(productId: number, categorySlug?: strin
  *  set's page even though they're separate products. */
 export async function getSetSiblings(
   categorySlug: string
-): Promise<{ slug: string; name: string; image: string | null }[]> {
+): Promise<{ slug: string; name: string; image: string | null; inStock: boolean }[]> {
   const { data: catProducts } = await supabase
     .from("product_categories")
     .select("product_id")
@@ -524,7 +524,7 @@ export async function getSetSiblings(
 
   const { data } = await supabase
     .from("products")
-    .select("name, slug, images")
+    .select("name, slug, images, stock_status")
     .in("id", ids)
     .eq("status", "publish")
     .order("name", { ascending: true });
@@ -539,6 +539,8 @@ export async function getSetSiblings(
         slug: p.slug as string,
         name: decodeEntities((p.name as string) || ""),
         image: imgs?.[0]?.src || null,
+        // Backorder still counts as buyable, only hard "outofstock" is sold out.
+        inStock: p.stock_status !== "outofstock",
       };
     });
 }
