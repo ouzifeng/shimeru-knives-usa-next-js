@@ -3,7 +3,7 @@ import { getStripe } from "@/lib/stripe";
 import { createOrder, wcFetch } from "@/lib/woocommerce";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { fireServerPurchaseEvent } from "@/lib/tracking-server";
-import { sendTelegramMessage } from "@/lib/telegram";
+import { sendTelegramMessage, sendTelegramPhoto } from "@/lib/telegram";
 import { ukStartOfTodayUTC } from "@/lib/uk-day";
 import { sendTransactionalEmail } from "@/lib/postmark";
 import { renderOrderConfirmed } from "@/lib/email-templates/order-confirmed";
@@ -403,14 +403,28 @@ export async function POST(req: Request) {
         const variationIds = cartItems.filter((i) => i.vid).map((i) => i.vid!);
 
         const [{ data: products }, { data: variations }] = await Promise.all([
-          admin.from("products").select("id, name, stock_quantity").in("id", productIds),
+          admin.from("products").select("id, name, stock_quantity, images").in("id", productIds),
           variationIds.length
-            ? admin.from("product_variations").select("id, product_id, stock_quantity, attributes").in("id", variationIds)
+            ? admin.from("product_variations").select("id, product_id, stock_quantity, attributes, image").in("id", variationIds)
             : Promise.resolve({ data: [] as any[] }),
         ]);
 
         const productMap = new Map(products?.map((p: any) => [p.id, p]) || []);
         const variationMap = new Map(variations?.map((v: any) => [v.id, v]) || []);
+
+        // Thumbnail for the order alert: the first item's variation image,
+        // else the product's first image. Best-effort — null skips the photo.
+        const firstImageSrc = (images: any): string | null => {
+          if (!Array.isArray(images)) return null;
+          for (const img of images) if (img?.src) return img.src as string;
+          return null;
+        };
+        const firstItem = cartItems[0];
+        let thumbnailUrl: string | null = null;
+        if (firstItem) {
+          const v = firstItem.vid ? variationMap.get(firstItem.vid) : null;
+          thumbnailUrl = v?.image?.src || firstImageSrc(productMap.get(firstItem.pid)?.images);
+        }
 
         const itemLines = cartItems.map((item) => {
           const product = productMap.get(item.pid);
@@ -464,7 +478,7 @@ export async function POST(req: Request) {
           console.error("Daily totals lookup failed:", dailyErr);
         }
 
-        await sendTelegramMessage(
+        const orderMessage =
           `🇺🇸 🔔 <b>New Order (US)</b>\n\n` +
           `<b>Customer:</b> ${customer?.name || "Unknown"}\n` +
           `<b>Email:</b> ${customer?.email || "—"}\n` +
@@ -472,8 +486,9 @@ export async function POST(req: Request) {
           (wcCouponCode ? `<b>Coupon:</b> ${wcCouponCode}\n` : "") +
           (wcOrder ? `<b>WC Order:</b> #${wcOrder.id}\n` : "") +
           `\n<b>Items:</b>\n${itemLines.join("\n")}` +
-          dailyLine
-        );
+          dailyLine;
+
+        await sendTelegramPhoto(thumbnailUrl, orderMessage);
       } catch {
         // Non-critical — don't fail the webhook
       }
