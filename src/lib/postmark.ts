@@ -25,6 +25,11 @@ export type SendTransactionalEmailParams = {
   /** Postmark Metadata — small key/value map indexable in the Postmark logs. */
   metadata?: Record<string, string>;
   attachments?: PostmarkAttachment[];
+  /**
+   * Extra raw SMTP headers. Used to set a custom Message-ID so a reply can be
+   * threaded back to its source (e.g. an affiliate message or support ticket).
+   */
+  headers?: { Name: string; Value: string }[];
   /** Track opens (pixel). Off by default for transactional receipts. */
   trackOpens?: boolean;
   /**
@@ -63,6 +68,7 @@ export async function sendTransactionalEmail(
   if (params.replyTo) body.ReplyTo = params.replyTo;
   if (params.tag) body.Tag = params.tag;
   if (params.metadata) body.Metadata = params.metadata;
+  if (params.headers && params.headers.length > 0) body.Headers = params.headers;
   if (params.trackOpens) body.TrackOpens = true;
   if (params.trackLinks) body.TrackLinks = params.trackLinks;
   if (params.attachments && params.attachments.length > 0) {

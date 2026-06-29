@@ -4,6 +4,8 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendTransactionalEmail } from "@/lib/postmark";
 import { withSignedUrls, type AffiliateAttachment } from "@/lib/affiliate-attachments";
 
+const THREADING_DOMAIN = "us.shimeruknives.co.uk";
+
 // GET: full message thread for an affiliate (includes internal notes).
 export async function GET(
   _req: NextRequest,
@@ -85,6 +87,28 @@ export async function POST(
     </div>
   `;
 
+  // Insert the outbound row first so we have its id to build a threadable
+  // Message-ID. A reply to this email carries the id in In-Reply-To, letting the
+  // inbound webhook fold the reply back into this affiliate's thread (see
+  // webhooks/postmark/inbound) instead of opening a stray support ticket.
+  const { data: pending, error: insertErr } = await supabase
+    .from("affiliate_messages")
+    .insert({
+      affiliate_id: id,
+      direction: "outbound",
+      from_addr: "sales@us.shimeruknives.co.uk",
+      subject: emailSubject,
+      content_text: bodyText,
+      content_html: html,
+    })
+    .select("id")
+    .single();
+
+  if (insertErr || !pending) {
+    return NextResponse.json({ error: insertErr?.message ?? "Failed to record message" }, { status: 500 });
+  }
+
+  const outboundMessageId = `affiliate-${id}-${pending.id}@${THREADING_DOMAIN}`;
   const result = await sendTransactionalEmail({
     to: affiliate.email,
     subject: emailSubject,
@@ -92,26 +116,19 @@ export async function POST(
     metadata: { affiliate_id: id },
     html,
     text: bodyText,
+    headers: [{ Name: "Message-ID", Value: `<${outboundMessageId}>` }],
   });
 
   if (!result.ok) {
+    // Email didn't go out — drop the row so the thread doesn't show a phantom send.
+    await supabase.from("affiliate_messages").delete().eq("id", pending.id);
     return NextResponse.json({ error: "Could not send email" }, { status: 502 });
   }
 
-  const { error } = await supabase.from("affiliate_messages").insert({
-    affiliate_id: id,
-    direction: "outbound",
-    from_addr: "sales@us.shimeruknives.co.uk",
-    subject: emailSubject,
-    content_text: bodyText,
-    content_html: html,
-    postmark_message_id: result.messageId ?? null,
-  });
-
-  if (error) {
-    // Email went out but the row failed — surface it so the trail isn't silently lost.
-    return NextResponse.json({ error: "Sent but failed to record" }, { status: 500 });
-  }
+  await supabase
+    .from("affiliate_messages")
+    .update({ postmark_message_id: result.messageId ?? outboundMessageId })
+    .eq("id", pending.id);
 
   return NextResponse.json({ ok: true });
 }

@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendSupportAdminNotification } from "@/lib/support-notifications";
+import { sendTransactionalEmail } from "@/lib/postmark";
+import { putObject, kindFromContentType, r2Configured } from "@/lib/r2";
+import type { AffiliateAttachment } from "@/lib/affiliate-attachments";
 
-const REGION = "uk";
+const REGION = "us";
 const STORAGE_BUCKET = "support-attachments";
 const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 30;
+const ADMIN_NOTIFY_EMAIL = "mr.davidoak@gmail.com";
+const AFFILIATE_ADMIN_URL = "https://us.shimeruknives.co.uk/admin?tab=affiliates";
 
 type PostmarkHeader = { Name: string; Value: string };
 type PostmarkAttachment = {
@@ -52,6 +57,54 @@ function extractTicketIdFromHeader(headerValue: string | null): string | null {
   if (!headerValue) return null;
   const match = headerValue.match(/ticket-([0-9a-f-]{36})-/i);
   return match?.[1] ?? null;
+}
+
+/**
+ * Extracts the affiliate id from a Message-ID-style value like
+ *   <affiliate-{uuid}-{uuid}@us.shimeruknives.co.uk>
+ * Affiliate email replies thread back into the affiliate's message log rather
+ * than the support queue.
+ */
+function extractAffiliateIdFromHeader(headerValue: string | null): string | null {
+  if (!headerValue) return null;
+  const match = headerValue.match(/affiliate-([0-9a-f-]{36})-/i);
+  return match?.[1] ?? null;
+}
+
+/**
+ * Uploads inbound email attachments to the affiliate R2 bucket and returns them
+ * in the AffiliateAttachment shape (key only — view URLs are presigned on read),
+ * matching portal uploads so they render in the portal and admin thread. Skips
+ * silently if R2 is not configured; never throws so a bad attachment can't fail
+ * the whole webhook (which would make Postmark retry forever).
+ */
+async function storeAffiliateEmailAttachments(
+  affiliateId: string,
+  messageId: string,
+  attachments: PostmarkAttachment[] | undefined
+): Promise<AffiliateAttachment[]> {
+  if (!attachments?.length || !r2Configured()) return [];
+  const safeMsgId = sanitizeFilename(messageId);
+  const stored: AffiliateAttachment[] = [];
+  for (const a of attachments) {
+    try {
+      const buffer = Buffer.from(a.Content, "base64");
+      const contentType = a.ContentType || "application/octet-stream";
+      const safeName = sanitizeFilename(a.Name || "file");
+      const key = `${affiliateId}/email/${safeMsgId}/${Date.now()}-${safeName}`;
+      await putObject(key, buffer, contentType);
+      stored.push({
+        name: a.Name || safeName,
+        key,
+        content_type: contentType,
+        size: a.ContentLength ?? buffer.length,
+        kind: kindFromContentType(contentType),
+      });
+    } catch (err) {
+      console.error("[postmark inbound] affiliate attachment upload failed:", a.Name, err);
+    }
+  }
+  return stored;
 }
 
 function sanitizeFilename(name: string): string {
@@ -155,6 +208,71 @@ export async function POST(req: NextRequest) {
   const references = findHeader(payload.Headers, "References");
   const headerTicketId =
     extractTicketIdFromHeader(inReplyTo) ?? extractTicketIdFromHeader(references);
+
+  // Affiliate email replies thread back into the affiliate's message log, not
+  // the support queue. Handle and return before any ticket work.
+  const affiliateId =
+    extractAffiliateIdFromHeader(inReplyTo) ?? extractAffiliateIdFromHeader(references);
+  if (affiliateId) {
+    const { data: dupe } = await supabase
+      .from("affiliate_messages")
+      .select("id")
+      .eq("postmark_message_id", payload.MessageID)
+      .maybeSingle();
+    if (dupe) {
+      return NextResponse.json({ ok: true, deduped: true, affiliate_id: affiliateId });
+    }
+
+    const { data: affiliate } = await supabase
+      .from("affiliates")
+      .select("id, name, email")
+      .eq("id", affiliateId)
+      .maybeSingle();
+
+    if (affiliate) {
+      const attachments = await storeAffiliateEmailAttachments(
+        affiliate.id,
+        payload.MessageID,
+        payload.Attachments
+      );
+      const { error: amErr } = await supabase.from("affiliate_messages").insert({
+        affiliate_id: affiliate.id,
+        direction: "inbound",
+        from_addr: customerEmail,
+        subject,
+        content_text: textBody || null,
+        content_html: htmlBody,
+        postmark_message_id: payload.MessageID,
+        attachments,
+      });
+
+      if (amErr) {
+        // Unique-constraint race on postmark_message_id — treat as dedup ack.
+        if (amErr.code === "23505") {
+          return NextResponse.json({ ok: true, deduped: true, affiliate_id: affiliate.id });
+        }
+        console.error("[postmark inbound] affiliate message insert failed:", amErr);
+        return NextResponse.json({ error: "Failed to store affiliate message" }, { status: 500 });
+      }
+
+      // Notify admin, mirroring the affiliate portal route.
+      await sendTransactionalEmail({
+        to: ADMIN_NOTIFY_EMAIL,
+        subject: `Affiliate email reply from ${affiliate.name}`,
+        tag: "affiliate-message-admin",
+        metadata: { affiliate_id: affiliate.id },
+        replyTo: affiliate.email,
+        text:
+          `${affiliate.name} (${affiliate.email}) replied by email.\n\n` +
+          (textBody ? `"${textBody}"\n\n` : "") +
+          (attachments.length ? `Attachments: ${attachments.length}\n\n` : "") +
+          `Review in the admin panel:\n${AFFILIATE_ADMIN_URL}`,
+      });
+
+      return NextResponse.json({ ok: true, affiliate_id: affiliate.id });
+    }
+    // Header named an affiliate we can't find — fall through to a support ticket.
+  }
 
   let parentTicketId: string | null = null;
   if (headerTicketId) {

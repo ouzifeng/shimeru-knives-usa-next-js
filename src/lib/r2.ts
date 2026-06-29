@@ -60,6 +60,21 @@ export async function presignUpload(
   return getSignedUrl(client(), cmd, { expiresIn: ttlSeconds });
 }
 
+/** Server-side upload of bytes we already hold (e.g. inbound email attachments). */
+export async function putObject(
+  key: string,
+  body: Buffer,
+  contentType: string
+): Promise<void> {
+  const cmd = new PutObjectCommand({
+    Bucket: R2_BUCKET,
+    Key: key,
+    Body: body,
+    ContentType: contentType,
+  });
+  await client().send(cmd);
+}
+
 /** Presigned GET URL for viewing/downloading a stored object. */
 export async function presignDownload(key: string, ttlSeconds = 3600): Promise<string> {
   const cmd = new GetObjectCommand({ Bucket: R2_BUCKET, Key: key });
