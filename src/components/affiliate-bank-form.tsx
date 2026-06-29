@@ -7,6 +7,7 @@ import { Loader2, Check, Lock } from "lucide-react";
 
 type Masked = {
   has: boolean;
+  bank_name?: string;
   account_holder?: string;
   routing_number_masked?: string;
   account_number_masked?: string;
@@ -15,6 +16,7 @@ type Masked = {
 export function AffiliateBankForm({ token }: { token: string }) {
   const [masked, setMasked] = useState<Masked | null>(null);
   const [editing, setEditing] = useState(false);
+  const [bankName, setBankName] = useState("");
   const [holder, setHolder] = useState("");
   const [routing, setRouting] = useState("");
   const [account, setAccount] = useState("");
@@ -46,6 +48,7 @@ export function AffiliateBankForm({ token }: { token: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token,
+          bank_name: bankName,
           account_holder: holder,
           routing_number: routing,
           account_number: account,
@@ -56,6 +59,7 @@ export function AffiliateBankForm({ token }: { token: string }) {
         throw new Error(data?.error || "Failed to save");
       }
       setSaved(true);
+      setBankName("");
       setHolder("");
       setRouting("");
       setAccount("");
@@ -84,6 +88,12 @@ export function AffiliateBankForm({ token }: { token: string }) {
 
       {masked?.has && !editing ? (
         <div className="space-y-2 text-sm">
+          {masked.bank_name && (
+            <div className="flex justify-between border-b border-border/50 py-1">
+              <span className="text-muted-foreground">Bank</span>
+              <span>{masked.bank_name}</span>
+            </div>
+          )}
           <div className="flex justify-between border-b border-border/50 py-1">
             <span className="text-muted-foreground">Account holder</span>
             <span>{masked.account_holder}</span>
@@ -105,6 +115,10 @@ export function AffiliateBankForm({ token }: { token: string }) {
         </div>
       ) : (
         <form onSubmit={save} className="space-y-3">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Bank name</label>
+            <Input value={bankName} onChange={(e) => setBankName(e.target.value)} required placeholder="e.g. Chase, Bank of America, Wells Fargo" />
+          </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Account holder name</label>
             <Input value={holder} onChange={(e) => setHolder(e.target.value)} required placeholder="Name on the account" />

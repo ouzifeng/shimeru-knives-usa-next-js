@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { encryptJson, decryptJson } from "@/lib/crypto-vault";
 
 type BankDetails = {
+  bank_name: string;
   account_holder: string;
   routing_number: string; // 9 digits (US ABA)
   account_number: string; // 4-17 digits
@@ -35,6 +36,7 @@ export async function GET(req: NextRequest) {
     const bank = decryptJson<BankDetails>(blob.enc);
     return NextResponse.json({
       has: true,
+      bank_name: bank.bank_name ?? "",
       account_holder: bank.account_holder,
       routing_number_masked: `•••••${bank.routing_number.slice(-4)}`,
       account_number_masked: `••••${bank.account_number.slice(-4)}`,
@@ -59,10 +61,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Not authorised" }, { status: 403 });
   }
 
+  const bankName = (body.bank_name ?? "").trim().slice(0, 120);
   const accountHolder = (body.account_holder ?? "").trim().slice(0, 120);
   const routingNumber = (body.routing_number ?? "").replace(/\D/g, "");
   const accountNumber = (body.account_number ?? "").replace(/\D/g, "");
 
+  if (!bankName) {
+    return NextResponse.json({ error: "Enter the bank name" }, { status: 400 });
+  }
   if (!accountHolder) {
     return NextResponse.json({ error: "Enter the account holder name" }, { status: 400 });
   }
@@ -74,6 +80,7 @@ export async function POST(req: NextRequest) {
   }
 
   const enc = encryptJson({
+    bank_name: bankName,
     account_holder: accountHolder,
     routing_number: routingNumber,
     account_number: accountNumber,

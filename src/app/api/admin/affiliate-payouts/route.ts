@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendTransactionalEmail } from "@/lib/postmark";
 import { decryptJson } from "@/lib/crypto-vault";
 
-type BankDetails = { account_holder: string; routing_number: string; account_number: string };
+type BankDetails = { bank_name?: string; account_holder: string; routing_number: string; account_number: string };
 
 function decryptBank(blob: unknown): BankDetails | null {
   const enc = (blob as { enc?: string } | null)?.enc;

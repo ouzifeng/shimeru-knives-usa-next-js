@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { AffiliatePortal } from "@/components/affiliate-portal";
 import { AffiliateBankForm } from "@/components/affiliate-bank-form";
+import { AffiliateShippingForm } from "@/components/affiliate-shipping-form";
 
 export const metadata: Metadata = {
   title: "Affiliate Portal",
@@ -56,8 +57,9 @@ export default async function AffiliatePortalPage({
 
       <AffiliatePortal token={token} />
 
-      <div className="mt-8">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2">
         <AffiliateBankForm token={token} />
+        <AffiliateShippingForm token={token} />
       </div>
       </div>
     </div>

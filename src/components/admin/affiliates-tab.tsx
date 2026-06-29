@@ -26,6 +26,9 @@ type Affiliate = {
   admin_notes: string | null;
   created_at: string;
   approved_at: string | null;
+  contract_signed_at: string | null;
+  signed_name: string | null;
+  agreement_sent_at: string | null;
   stats: { clicks: number; sales: number; pending: number; approved: number; paid: number };
 };
 
@@ -50,6 +53,7 @@ export function AffiliatesTab() {
   const [filter, setFilter] = useState<"all" | (typeof STATUSES)[number]>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [sendingAgreementId, setSendingAgreementId] = useState<string | null>(null);
   const [editNotes, setEditNotes] = useState<Record<string, string>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -111,6 +115,33 @@ export function AffiliatesTab() {
     const result = await patch(a.id, { commission_pct: pct });
     if (!result) return;
     setAffiliates((prev) => prev.map((x) => (x.id === a.id ? { ...x, commission_pct: pct } : x)));
+  }
+
+  async function sendAgreement(a: Affiliate) {
+    setSendingAgreementId(a.id);
+    try {
+      const res = await fetch(`/api/admin/affiliates/${a.id}/send-agreement`, { method: "POST" });
+      if (!res.ok) {
+        const { error: msg } = await res.json().catch(() => ({ error: "Failed" }));
+        alert(`Failed to send: ${msg || res.statusText}`);
+        return;
+      }
+      const data = (await res.json()) as { alreadySigned?: boolean; agreement_sent_at?: string };
+      setAffiliates((prev) =>
+        prev.map((x) =>
+          x.id === a.id
+            ? { ...x, agreement_sent_at: data.agreement_sent_at ?? new Date().toISOString() }
+            : x
+        )
+      );
+      alert(
+        data.alreadySigned
+          ? `Agreement re-sent to ${a.email}. Note: they have already signed.`
+          : `Agreement sent to ${a.email}.`
+      );
+    } finally {
+      setSendingAgreementId(null);
+    }
   }
 
   function copyLink(a: Affiliate) {
@@ -219,6 +250,12 @@ export function AffiliatesTab() {
                     <div>{a.stats.clicks} clicks · {a.stats.sales} sales</div>
                     <div>{gbp(a.stats.pending + a.stats.approved)} pending/approved</div>
                   </div>
+                  {a.status === "approved" && (
+                    <AgreementBadge
+                      signedAt={a.contract_signed_at}
+                      sentAt={a.agreement_sent_at}
+                    />
+                  )}
                   <span
                     className={`rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${
                       STATUS_STYLES[a.status]
@@ -250,6 +287,16 @@ export function AffiliatesTab() {
                       <Detail
                         label="Applied"
                         value={new Date(a.created_at).toLocaleDateString("en-GB")}
+                      />
+                      <Detail
+                        label="Agreement"
+                        value={
+                          a.contract_signed_at
+                            ? `Signed ${new Date(a.contract_signed_at).toLocaleDateString("en-GB")}`
+                            : a.agreement_sent_at
+                            ? `Awaiting signature (sent ${new Date(a.agreement_sent_at).toLocaleDateString("en-GB")})`
+                            : "Not sent"
+                        }
                       />
                     </div>
 
@@ -315,6 +362,9 @@ export function AffiliatesTab() {
                       <Stat label="Approved" value={gbp(a.stats.approved)} />
                       <Stat label="Paid" value={gbp(a.stats.paid)} />
                     </div>
+
+                    {/* Payout + shipping (decrypted, admin-only) */}
+                    <AffiliateContact affiliateId={a.id} />
 
                     {/* Commission % */}
                     <div className="flex items-center gap-2">
@@ -385,6 +435,18 @@ export function AffiliatesTab() {
                           Suspend
                         </button>
                       )}
+                      {a.status === "approved" && !a.contract_signed_at && (
+                        <button
+                          onClick={() => sendAgreement(a)}
+                          disabled={sendingAgreementId === a.id}
+                          className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
+                        >
+                          {sendingAgreementId === a.id && (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          )}
+                          {a.agreement_sent_at ? "Resend agreement" : "Send agreement"}
+                        </button>
+                      )}
                     </div>
 
                     {/* Messages */}
@@ -420,6 +482,115 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 function looksLikeUrl(s?: string) {
   return !!s && /^https?:\/\//i.test(s);
+}
+
+function AgreementBadge({
+  signedAt,
+  sentAt,
+}: {
+  signedAt: string | null;
+  sentAt: string | null;
+}) {
+  if (signedAt) {
+    return (
+      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+        Signed
+      </span>
+    );
+  }
+  if (sentAt) {
+    return (
+      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+        Awaiting signature
+      </span>
+    );
+  }
+  return (
+    <span className="rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-semibold text-gray-700">
+      Unsigned
+    </span>
+  );
+}
+
+type ContactBank = {
+  bank_name?: string;
+  account_holder: string;
+  routing_number: string;
+  account_number: string;
+};
+type ContactShipping = {
+  full_name: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+};
+
+function AffiliateContact({ affiliateId }: { affiliateId: string }) {
+  const [data, setData] = useState<{ bank: ContactBank | null; shipping: ContactShipping | null } | null>(
+    null
+  );
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    fetch(`/api/admin/affiliates/${affiliateId}/contact`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (active) setData(d);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [affiliateId]);
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <div className="rounded-md border border-border bg-muted/30 p-3 text-xs">
+        <p className="mb-1.5 font-medium uppercase tracking-wide text-muted-foreground">
+          Payout (bank)
+        </p>
+        {loading ? (
+          <span className="text-muted-foreground">Loading…</span>
+        ) : data?.bank ? (
+          <div className="space-y-0.5">
+            {data.bank.bank_name && <div>{data.bank.bank_name}</div>}
+            <div>{data.bank.account_holder}</div>
+            <div>Routing {data.bank.routing_number}</div>
+            <div>Acct {data.bank.account_number}</div>
+          </div>
+        ) : (
+          <span className="text-amber-700">Not provided</span>
+        )}
+      </div>
+
+      <div className="rounded-md border border-border bg-muted/30 p-3 text-xs">
+        <p className="mb-1.5 font-medium uppercase tracking-wide text-muted-foreground">
+          Shipping address
+        </p>
+        {loading ? (
+          <span className="text-muted-foreground">Loading…</span>
+        ) : data?.shipping ? (
+          <div className="space-y-0.5">
+            <div>{data.shipping.full_name}</div>
+            <div>{data.shipping.line1}</div>
+            {data.shipping.line2 && <div>{data.shipping.line2}</div>}
+            <div>
+              {data.shipping.city}, {data.shipping.state} {data.shipping.zip}
+            </div>
+            <div>{data.shipping.country}</div>
+          </div>
+        ) : (
+          <span className="text-amber-700">Not provided</span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 type ThreadAttachment = {

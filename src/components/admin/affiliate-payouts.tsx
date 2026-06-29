@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 
-type Bank = { account_holder: string; routing_number: string; account_number: string };
+type Bank = { bank_name?: string; account_holder: string; routing_number: string; account_number: string };
 
 type Payable = {
   affiliate_id: string;
@@ -123,6 +123,12 @@ export function AffiliatePayouts() {
               <div className="mt-3 rounded-md bg-muted/50 p-2.5 text-xs">
                 {p.bank ? (
                   <div className="grid gap-x-6 gap-y-0.5 sm:grid-cols-3">
+                    {p.bank.bank_name && (
+                      <span>
+                        <span className="text-muted-foreground">Bank: </span>
+                        {p.bank.bank_name}
+                      </span>
+                    )}
                     <span>
                       <span className="text-muted-foreground">Holder: </span>
                       {p.bank.account_holder}
