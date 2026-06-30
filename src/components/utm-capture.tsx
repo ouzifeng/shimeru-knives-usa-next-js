@@ -39,7 +39,7 @@ function getCookie(name: string): string | null {
 
 export function UtmCapture() {
   useEffect(() => {
-    // Only capture on first visit — don't overwrite existing attribution
+    // Only capture on first visit, don't overwrite existing attribution
     const existing = getCookie(COOKIE_NAME);
     if (existing) return;
 

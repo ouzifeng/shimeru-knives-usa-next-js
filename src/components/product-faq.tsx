@@ -21,12 +21,12 @@ const faqs = [
   {
     question: "Are You A Dropshipping Site?",
     answer:
-      "Absolutely not. Shimeru is our own branded knife line, stocked in our US fulfillment partner's warehouse in Illinois. Every US order is picked, packed and shipped from there via USPS Priority Mail — orders placed before 12pm EST go out the same day, tracked, with delivery in 3–5 business days.\n\nA lot of sites you'll see selling lookalike Damascus knives are dropshippers fulfilling directly from China. The easiest tell is the delivery estimate: if a US site quotes 5+ business days, the knife is almost certainly on a slow boat from a warehouse in Guangzhou, not sitting on a shelf in the States. USPS Priority Mail doesn't take that long — do not be fooled by imitations.\n\nThe other tell comes after the sale. When something goes wrong, dropshippers ask you to ship the knife back to a Chinese return address at your own expense — which usually costs more than the knife. We handle every return ourselves through our [Returns & Refunds](/refund_returns) page, to a US address, with no hoops.",
+      "Absolutely not. Shimeru is our own branded knife line, stocked in our US fulfillment partner's warehouse in Illinois. Every US order is picked, packed and shipped from there via USPS Priority Mail, orders placed before 12pm EST go out the same day, tracked, with delivery in 3–5 business days.\n\nA lot of sites you'll see selling lookalike Damascus knives are dropshippers fulfilling directly from China. The easiest tell is the delivery estimate: if a US site quotes 5+ business days, the knife is almost certainly on a slow boat from a warehouse in Guangzhou, not sitting on a shelf in the States. USPS Priority Mail doesn't take that long, do not be fooled by imitations.\n\nThe other tell comes after the sale. When something goes wrong, dropshippers ask you to ship the knife back to a Chinese return address at your own expense, which usually costs more than the knife. We handle every return ourselves through our [Returns & Refunds](/refund_returns) page, to a US address, with no hoops.",
   },
   {
     question: "How Do I Return A Knife?",
     answer:
-      "Returns are handled through our self-service [Returns & Refunds](/refund_returns) portal — enter your order number, follow the steps, and we'll refund you once the knife arrives back with us.",
+      "Returns are handled through our self-service [Returns & Refunds](/refund_returns) portal, enter your order number, follow the steps, and we'll refund you once the knife arrives back with us.",
   },
 ];
 

@@ -6,7 +6,7 @@ import { ArrowRight, ArrowLeft, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /* ============================================================================
-   Quiz Data — Questions, Options & Recommendation Logic
+   Quiz Data, Questions, Options & Recommendation Logic
    ========================================================================= */
 
 interface QuizOption {
@@ -38,7 +38,7 @@ const QUESTIONS: QuizQuestion[] = [
   {
     id: "experience",
     question: "How confident are you with knives?",
-    subtitle: "There's no wrong answer — every level has a perfect match",
+    subtitle: "There's no wrong answer, every level has a perfect match",
     options: [
       { id: "beginner", label: "Just starting out", sublabel: "I want something forgiving and easy", icon: "🌱" },
       { id: "confident", label: "Comfortable cook", sublabel: "I cook regularly and want to level up", icon: "👨‍🍳" },
@@ -59,11 +59,11 @@ const QUESTIONS: QuizQuestion[] = [
   {
     id: "size",
     question: "What blade size feels right?",
-    subtitle: "Hold your hand flat — imagine the blade against it",
+    subtitle: "Hold your hand flat, imagine the blade against it",
     options: [
-      { id: "compact", label: "Compact", sublabel: "Under 6\" — nimble and precise", icon: "🔹" },
-      { id: "medium", label: "Medium", sublabel: "6–7\" — balanced all-rounder", icon: "🔶" },
-      { id: "large", label: "Large", sublabel: "8\"+ — commanding reach", icon: "🔷" },
+      { id: "compact", label: "Compact", sublabel: "Under 6\", nimble and precise", icon: "🔹" },
+      { id: "medium", label: "Medium", sublabel: "6–7\", balanced all-rounder", icon: "🔶" },
+      { id: "large", label: "Large", sublabel: "8\"+, commanding reach", icon: "🔷" },
     ],
   },
 ];
@@ -92,7 +92,7 @@ function getRecommendation(answers: Record<string, string>): KnifeRecommendation
       categorySlug: "deba",
       description:
         "The traditional Japanese fish butchery knife. Its thick, heavy blade powers through fish bones and cartilage with single-bevel precision.",
-      why: "Your experience with knives and focus on fish makes the Deba a natural choice — it's the knife Japanese fish markets rely on.",
+      why: "Your experience with knives and focus on fish makes the Deba a natural choice, it's the knife Japanese fish markets rely on.",
       alsoConsider: { name: "Fillet Knife", slug: "fillet-knife", reason: "For delicate filleting work" },
     };
   }
@@ -117,7 +117,7 @@ function getRecommendation(answers: Record<string, string>): KnifeRecommendation
       categorySlug: "nakiri",
       description:
         "Japan's dedicated vegetable knife. The perfectly flat edge makes full contact with the cutting board for clean, effortless cuts through any produce.",
-      why: "Nothing cuts vegetables like a Nakiri — the flat blade means every millimeter makes contact for perfect julienne, brunoise, and rough chops.",
+      why: "Nothing cuts vegetables like a Nakiri, the flat blade means every millimeter makes contact for perfect julienne, brunoise, and rough chops.",
       alsoConsider: { name: "Bunka", slug: "bunka", reason: "If you want a pointed tip for detail work too" },
     };
   }
@@ -129,7 +129,7 @@ function getRecommendation(answers: Record<string, string>): KnifeRecommendation
       categorySlug: "petty",
       description:
         "A compact Japanese utility knife ideal for peeling, trimming, and precise vegetable work. Light and agile in the hand.",
-      why: "For compact vegetable prep — peeling, trimming, garnishing — the Petty is unmatched for its agility.",
+      why: "For compact vegetable prep, peeling, trimming, garnishing, the Petty is unmatched for its agility.",
       alsoConsider: { name: "Nakiri", slug: "nakiri", reason: "If you also want a board knife for larger veg" },
     };
   }
@@ -142,7 +142,7 @@ function getRecommendation(answers: Record<string, string>): KnifeRecommendation
       categorySlug: "kiritsuke",
       description:
         "The executive chef's knife in Japan. A long, angular blade that handles everything from breaking down proteins to precise vegetable work with authority.",
-      why: "Your skill level and preference for a larger blade makes the Kiritsuke ideal — it's traditionally reserved for head chefs.",
+      why: "Your skill level and preference for a larger blade makes the Kiritsuke ideal, it's traditionally reserved for head chefs.",
       alsoConsider: { name: "Gyuto", slug: "gyuto", reason: "A more versatile alternative with a curved belly" },
     };
   }
@@ -153,7 +153,7 @@ function getRecommendation(answers: Record<string, string>): KnifeRecommendation
       japanese: "牛刀",
       categorySlug: "gyuto",
       description:
-        "The Japanese chef's knife — lighter and sharper than Western equivalents. Its curved belly excels at rocking through proteins while the pointed tip handles detail work.",
+        "The Japanese chef's knife, lighter and sharper than Western equivalents. Its curved belly excels at rocking through proteins while the pointed tip handles detail work.",
       why: "The Gyuto is the go-to for meat work. Its profile and weight make breaking down cuts feel effortless.",
       alsoConsider: { name: "Cleaver", slug: "cleaver", reason: "For heavy-duty butchery tasks" },
     };
@@ -165,7 +165,7 @@ function getRecommendation(answers: Record<string, string>): KnifeRecommendation
       japanese: "三徳包丁",
       categorySlug: "santoku",
       description:
-        "The \"three virtues\" knife — equally skilled with meat, fish, and vegetables. A shorter, lighter alternative to the Gyuto that's comfortable for any hand size.",
+        "The \"three virtues\" knife, equally skilled with meat, fish, and vegetables. A shorter, lighter alternative to the Gyuto that's comfortable for any hand size.",
       why: "The Santoku's flat profile makes it great for clean slicing of proteins, and its compact size gives you confidence and control.",
       alsoConsider: { name: "Gyuto", slug: "gyuto", reason: "If you'd prefer a longer, curved blade" },
     };
@@ -179,7 +179,7 @@ function getRecommendation(answers: Record<string, string>): KnifeRecommendation
       categorySlug: "kiritsuke",
       description:
         "The most prestigious knife in the Japanese kitchen. Its striking angular profile and long flat edge are as beautiful as they are functional.",
-      why: "The Kiritsuke is the knife that draws eyes. Traditionally a mark of the head chef — it's craftsmanship you can feel in every cut.",
+      why: "The Kiritsuke is the knife that draws eyes. Traditionally a mark of the head chef, it's craftsmanship you can feel in every cut.",
       alsoConsider: { name: "Bunka", slug: "bunka", reason: "For a similarly striking k-tip in a compact size" },
     };
   }
@@ -191,7 +191,7 @@ function getRecommendation(answers: Record<string, string>): KnifeRecommendation
       categorySlug: "bunka",
       description:
         "A modern Japanese knife with a distinctive angular \"k-tip\" that's as striking as it is precise. Excellent for detail work and everyday cooking.",
-      why: "The Bunka's reverse-tanto tip makes it one of the most visually distinctive knives in any kitchen — and it performs beautifully.",
+      why: "The Bunka's reverse-tanto tip makes it one of the most visually distinctive knives in any kitchen, and it performs beautifully.",
       alsoConsider: { name: "Kiritsuke", slug: "kiritsuke", reason: "For a larger statement piece" },
     };
   }
@@ -216,7 +216,7 @@ function getRecommendation(answers: Record<string, string>): KnifeRecommendation
       categorySlug: "bunka",
       description:
         "The angular k-tip gives you a fine point for intricate cuts, while the flat edge provides board contact for clean chopping. Precision built into the geometry.",
-      why: "The Bunka's pointed tip geometry is designed for precision work — scoring, fine dicing, and detailed cuts come naturally.",
+      why: "The Bunka's pointed tip geometry is designed for precision work, scoring, fine dicing, and detailed cuts come naturally.",
       alsoConsider: { name: "Kiritsuke", slug: "kiritsuke", reason: "For precision at a longer length" },
     };
   }
@@ -228,7 +228,7 @@ function getRecommendation(answers: Record<string, string>): KnifeRecommendation
       japanese: "三徳包丁",
       categorySlug: "santoku",
       description:
-        "Japan's most popular home kitchen knife. The Santoku is forgiving, versatile, and easy to maintain — it handles meat, fish, and vegetables with equal grace.",
+        "Japan's most popular home kitchen knife. The Santoku is forgiving, versatile, and easy to maintain, it handles meat, fish, and vegetables with equal grace.",
       why: "The Santoku is designed for everyday ease. It stays sharp, it's comfortable, and it handles everything without fuss.",
       alsoConsider: { name: "Gyuto", slug: "gyuto", reason: "If you'd like a larger, curved alternative" },
     };
@@ -254,19 +254,19 @@ function getRecommendation(answers: Record<string, string>): KnifeRecommendation
       japanese: "三徳包丁",
       categorySlug: "santoku",
       description:
-        "The \"three virtues\" knife — meat, fish, and vegetables. Compact, balanced, and comfortable. The most popular knife in Japanese home kitchens for good reason.",
+        "The \"three virtues\" knife, meat, fish, and vegetables. Compact, balanced, and comfortable. The most popular knife in Japanese home kitchens for good reason.",
       why: "For a versatile medium blade, nothing beats the Santoku. It's the one knife that genuinely does it all.",
       alsoConsider: { name: "Gyuto", slug: "gyuto", reason: "If you find yourself wanting more reach" },
     };
   }
 
-  // Fallback — Gyuto as the universal recommendation
+  // Fallback, Gyuto as the universal recommendation
   return {
     name: "Gyuto",
     japanese: "牛刀",
     categorySlug: "gyuto",
     description:
-      "The Japanese chef's knife — versatile, sharp, and balanced. An exceptional all-rounder for any kitchen and any skill level.",
+      "The Japanese chef's knife, versatile, sharp, and balanced. An exceptional all-rounder for any kitchen and any skill level.",
     why: "The Gyuto is the single best knife to own. It handles every task with grace and will grow with your skills.",
     alsoConsider: { name: "Santoku", slug: "santoku", reason: "For a shorter, lighter alternative" },
   };

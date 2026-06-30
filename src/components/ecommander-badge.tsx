@@ -79,7 +79,7 @@ export function EcommanderBadge({ variant = "dark" }: { variant?: "dark" | "ligh
         {" "}from {data.totalReviews.toLocaleString()} store reviews
       </span>
 
-      {/* Subtle attribution — footer only */}
+      {/* Subtle attribution, footer only */}
       {isDark && (
         <span className="text-[10px] tracking-[0.15em] uppercase text-background/25 hidden sm:inline">
           Ecommander

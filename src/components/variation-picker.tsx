@@ -71,7 +71,7 @@ export function VariationPicker({ productId, attributes, onVariationChange }: Pr
             {attr.name}
             {selected[attr.name] && (
               <span className="text-foreground ml-2 normal-case tracking-normal">
-                — {selected[attr.name]}
+, {selected[attr.name]}
               </span>
             )}
           </label>

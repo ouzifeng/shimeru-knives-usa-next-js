@@ -1,4 +1,4 @@
-// Order confirmation email — sent the moment payment succeeds.
+// Order confirmation email, sent the moment payment succeeds.
 //
 // Design notes:
 //   - Email clients (especially Outlook) don't support oklch, custom fonts,
@@ -24,7 +24,7 @@ type OrderConfirmedItem = {
   name: string;
   quantity: number;
   total: string; // pre-formatted, e.g. "£49.99"
-  imageUrl?: string; // absolute URL — required for email clients to load
+  imageUrl?: string; // absolute URL, required for email clients to load
 };
 
 export type OrderConfirmedData = {
@@ -73,7 +73,7 @@ export function renderOrderConfirmed(d: OrderConfirmedData): {
   html: string;
   text: string;
 } {
-  const subject = `Order confirmed — #${d.orderNumber}`;
+  const subject = `Order confirmed, #${d.orderNumber}`;
 
   const itemsHtml = d.items
     .map(
@@ -124,7 +124,7 @@ export function renderOrderConfirmed(d: OrderConfirmedData): {
 </head>
 <body style="margin:0;padding:0;background:${C.bg};font-family:${FONT_SANS};color:${C.foreground};-webkit-font-smoothing:antialiased;">
   <span style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;font-size:1px;line-height:1px;max-height:0;max-width:0;overflow:hidden;">
-    Thanks ${escapeHtml(d.customerFirstName)} — your knife is on the way.
+    Thanks ${escapeHtml(d.customerFirstName)}, your knife is on the way.
   </span>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${C.bg};">
     <tr>

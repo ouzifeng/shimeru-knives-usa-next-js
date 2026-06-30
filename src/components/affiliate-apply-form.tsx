@@ -177,7 +177,7 @@ export function AffiliateApplyForm() {
         </div>
       </div>
 
-      {/* Social channels — add as many as they like */}
+      {/* Social channels, add as many as they like */}
       <div className="space-y-2">
         <label className="text-xs font-medium text-muted-foreground">Social channels *</label>
         <div className="space-y-2">

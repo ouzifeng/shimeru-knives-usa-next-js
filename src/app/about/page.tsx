@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "About Us",
   description:
-    "Shimeru Knives brings authentic Japanese chef knives to home cooks who value precision, balance, and craftsmanship — without the premium markup.",
+    "Shimeru Knives brings authentic Japanese chef knives to home cooks who value precision, balance, and craftsmanship, without the premium markup.",
 };
 
 export default function AboutPage() {
@@ -28,14 +28,14 @@ export default function AboutPage() {
         <p>
           Our idea is simple: every home cook deserves access to genuinely good Japanese knives
           without paying collector prices. We work directly with trusted forging partners in Asia
-          to source knives built to authentic Japanese geometry — high-hardness steel, thin edges,
-          balanced handles — at a price that makes sense for everyday cooking.
+          to source knives built to authentic Japanese geometry, high-hardness steel, thin edges,
+          balanced handles, at a price that makes sense for everyday cooking.
         </p>
 
         <p>
           Every knife we sell is hand-selected for its steel quality, edge geometry, balance, and
-          handle comfort. We focus on the styles that matter most in a working kitchen — gyuto,
-          santoku, nakiri, and kiritsuke — and we test each model before it joins our range.
+          handle comfort. We focus on the styles that matter most in a working kitchen, gyuto,
+          santoku, nakiri, and kiritsuke, and we test each model before it joins our range.
         </p>
 
         <p>
@@ -47,7 +47,7 @@ export default function AboutPage() {
         <h2 className="font-serif text-xl font-light tracking-tight pt-4">A Note From the Founder</h2>
 
         <p>
-          Hi, I&apos;m David Oak — I started Shimeru Knives in 2023 after years of buying,
+          Hi, I&apos;m David Oak, I started Shimeru Knives in 2023 after years of buying,
           using and re-sharpening cheap kitchen knives that never quite cut the way I wanted
           them to. I tried a Japanese gyuto, never looked back, and started Shimeru to bring
           the same knives to home cooks at honest prices. If you ever have a question about a
@@ -60,7 +60,7 @@ export default function AboutPage() {
         <ul className="list-disc pl-5 space-y-2">
           <li>Genuine Japanese-style knives at honest prices</li>
           <li>Free shipping on every order</li>
-          <li>60-day returns — no questions asked</li>
+          <li>60-day returns, no questions asked</li>
           <li>Responsive customer support via email and phone</li>
           <li>Secure checkout powered by Stripe</li>
         </ul>

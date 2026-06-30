@@ -5,7 +5,7 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /* ============================================================================
-   Steel Types — Encyclopedia Data
+   Steel Types, Encyclopedia Data
    ========================================================================= */
 
 interface SteelEntry {
@@ -29,7 +29,7 @@ const STEEL_TYPES: SteelEntry[] = [
     corrosionResistance: "Very Good",
     easeOfSharpening: "Moderate",
     description:
-      "Premium Japanese stainless steel with high carbon content. The gold standard for Japanese kitchen knives — holds a razor edge while resisting corrosion.",
+      "Premium Japanese stainless steel with high carbon content. The gold standard for Japanese kitchen knives, holds a razor edge while resisting corrosion.",
     bestFor: "Everyday precision cutting",
     tags: ["stainless", "professional"],
   },
@@ -96,7 +96,7 @@ const STEEL_TYPES: SteelEntry[] = [
 ];
 
 /* ============================================================================
-   Knife Types — Encyclopedia Data
+   Knife Types, Encyclopedia Data
    ========================================================================= */
 
 interface KnifeEntry {
@@ -119,8 +119,8 @@ const KNIFE_TYPES: KnifeEntry[] = [
     bladeLength: "180–270mm",
     weight: "Medium",
     description:
-      "The Japanese chef's knife — equivalent to a Western chef's knife but thinner and lighter. Versatile workhorse that excels at rocking and push-cutting.",
-    bestFor: "Everything — meat, fish, vegetables",
+      "The Japanese chef's knife, equivalent to a Western chef's knife but thinner and lighter. Versatile workhorse that excels at rocking and push-cutting.",
+    bestFor: "Everything, meat, fish, vegetables",
     technique: "Rock chop, push cut, pull cut",
     tags: ["versatile", "essential", "professional"],
   },
@@ -131,7 +131,7 @@ const KNIFE_TYPES: KnifeEntry[] = [
     bladeLength: "160–180mm",
     weight: "Light",
     description:
-      "\"Three virtues\" knife — designed for meat, fish, and vegetables. Flatter profile than a Gyuto with a more approachable size. Japan's most popular home kitchen knife.",
+      "\"Three virtues\" knife, designed for meat, fish, and vegetables. Flatter profile than a Gyuto with a more approachable size. Japan's most popular home kitchen knife.",
     bestFor: "Slicing, dicing, and mincing",
     technique: "Push cut, tap chop",
     tags: ["versatile", "essential", "beginner-friendly"],
@@ -144,7 +144,7 @@ const KNIFE_TYPES: KnifeEntry[] = [
     weight: "Medium",
     description:
       "Dedicated vegetable knife with a perfectly flat edge for full-contact board cuts. The thin blade glides through dense vegetables with minimal resistance.",
-    bestFor: "All vegetables — julienne, brunoise, rough chop",
+    bestFor: "All vegetables, julienne, brunoise, rough chop",
     technique: "Push cut, up-and-down chop",
     tags: ["vegetable", "specialist"],
   },
@@ -155,7 +155,7 @@ const KNIFE_TYPES: KnifeEntry[] = [
     bladeLength: "210–270mm",
     weight: "Medium-Heavy",
     description:
-      "A hybrid between a Yanagiba and Usuba — the executive chef's knife in Japan. The angular tip and long flat edge handle both precise work and broad cuts.",
+      "A hybrid between a Yanagiba and Usuba, the executive chef's knife in Japan. The angular tip and long flat edge handle both precise work and broad cuts.",
     bestFor: "Slicing fish, cutting vegetables, presentation",
     technique: "Pull cut, push cut, decorative cuts",
     tags: ["professional", "prestige", "hybrid"],
@@ -203,7 +203,7 @@ const KNIFE_TYPES: KnifeEntry[] = [
     bladeLength: "240–300mm",
     weight: "Light-Medium",
     description:
-      "Japanese slicing knife — the double-bevel alternative to a Yanagiba. Long, narrow blade for clean, single-stroke slicing of proteins.",
+      "Japanese slicing knife, the double-bevel alternative to a Yanagiba. Long, narrow blade for clean, single-stroke slicing of proteins.",
     bestFor: "Slicing roasts, sashimi, charcuterie",
     technique: "Long pull cuts, single-pass slicing",
     tags: ["specialist", "slicing", "professional"],
@@ -259,7 +259,7 @@ function matchSteel(productValue: string): string | null {
   const lower = productValue.toLowerCase();
   for (const s of STEEL_TYPES) {
     if (lower.includes(s.name.toLowerCase())) return s.name;
-    // Match partial — "damascus" in "Damascus Steel (VG10 Core)"
+    // Match partial, "damascus" in "Damascus Steel (VG10 Core)"
     if (s.name.toLowerCase().includes("damascus") && lower.includes("damascus")) return s.name;
   }
   // More specific matches

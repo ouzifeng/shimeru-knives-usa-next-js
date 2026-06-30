@@ -1,4 +1,4 @@
-// Order shipped / dispatched email — sent when a WC order flips to "completed"
+// Order shipped / dispatched email, sent when a WC order flips to "completed"
 // (Shimeru's workflow: picking + adding tracking + marking complete = shipped).
 //
 // Shares the visual language of order-confirmed.ts: table-based, inline styles,
@@ -17,7 +17,7 @@ type Address = {
 type OrderShippedItem = {
   name: string;
   quantity: number;
-  imageUrl?: string; // absolute URL — required for email clients to load
+  imageUrl?: string; // absolute URL, required for email clients to load
 };
 
 export type OrderShippedData = {
@@ -60,7 +60,7 @@ export function renderOrderShipped(d: OrderShippedData): {
   html: string;
   text: string;
 } {
-  const subject = `Your order is on its way — #${d.orderNumber}`;
+  const subject = `Your order is on its way, #${d.orderNumber}`;
 
   const itemsHtml = d.items
     .map(
@@ -86,7 +86,7 @@ export function renderOrderShipped(d: OrderShippedData): {
   const addr = d.shippingAddress;
   const providerLabel = d.trackingProvider || "your carrier";
 
-  // Tracking card — the centrepiece. Falls back gracefully if no number/url.
+  // Tracking card, the centrepiece. Falls back gracefully if no number/url.
   const trackingHtml = d.trackingNumber
     ? `
       <tr>
@@ -94,7 +94,7 @@ export function renderOrderShipped(d: OrderShippedData): {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${C.card};border:1px solid ${C.border};border-radius:4px;">
             <tr>
               <td style="padding:26px 28px;" align="center">
-                <div style="font-family:${FONT_SANS};font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:${C.muted};">Tracking — ${escapeHtml(providerLabel)}</div>
+                <div style="font-family:${FONT_SANS};font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:${C.muted};">Tracking, ${escapeHtml(providerLabel)}</div>
                 <div style="margin-top:10px;font-family:${FONT_MONO};font-size:20px;letter-spacing:0.04em;color:${C.foreground};">${escapeHtml(d.trackingNumber)}</div>
                 ${
                   d.trackingUrl
@@ -120,7 +120,7 @@ export function renderOrderShipped(d: OrderShippedData): {
 </head>
 <body style="margin:0;padding:0;background:${C.bg};font-family:${FONT_SANS};color:${C.foreground};-webkit-font-smoothing:antialiased;">
   <span style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;font-size:1px;line-height:1px;max-height:0;max-width:0;overflow:hidden;">
-    Good news ${escapeHtml(d.customerFirstName)} — your knife has been dispatched.
+    Good news ${escapeHtml(d.customerFirstName)}, your knife has been dispatched.
   </span>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${C.bg};">
     <tr>

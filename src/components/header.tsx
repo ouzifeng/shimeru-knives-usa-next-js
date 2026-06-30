@@ -82,7 +82,7 @@ export function Header() {
             </div>
           </div>
 
-          {/* Desktop nav — below logo row */}
+          {/* Desktop nav, below logo row */}
           <nav className="hidden lg:flex items-center justify-center gap-8 pb-3 -mt-1">
             {[
               { href: "/product", label: "Shop All" },

@@ -68,7 +68,7 @@ export function Analytics() {
         document.head.appendChild(script);
       })
       .catch(() => {
-        // Silently fail — analytics should never break the site
+        // Silently fail, analytics should never break the site
       });
   }, []);
 

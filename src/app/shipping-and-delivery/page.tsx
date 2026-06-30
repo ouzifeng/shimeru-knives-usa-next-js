@@ -27,7 +27,7 @@ export default function ShippingPage() {
 
         <section>
           <h2 className="text-base font-medium text-foreground mb-3">
-            Express Shipping: 1–3 business days — $5.99
+            Express Shipping: 1–3 business days, $5.99
           </h2>
           <ul className="list-disc pl-5 space-y-2">
             <li>Available at checkout</li>

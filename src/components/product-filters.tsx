@@ -129,7 +129,7 @@ function FilterContent({ options, onNavigate }: { options: FilterOptions; onNavi
         </div>
       ))}
 
-      {/* Tag-based filters (Steel Type — Blade Length hidden) */}
+      {/* Tag-based filters (Steel Type, Blade Length hidden) */}
       {Object.entries(options.tags || {}).filter(([groupName]) => groupName !== "Blade Length").map(([groupName, values]) => (
         <div key={groupName}>
           <h3 className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-3">{groupName}</h3>

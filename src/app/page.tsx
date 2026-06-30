@@ -4,7 +4,7 @@ import { queryProducts } from "@/lib/products";
 import { ProductCard } from "@/components/product-card";
 import { storeConfig } from "../../store.config";
 
-export const revalidate = 3600; // 1 hour — sync cron triggers on-demand revalidation
+export const revalidate = 3600; // 1 hour, sync cron triggers on-demand revalidation
 
 /* ------------------------------------------------------------------ */
 /*  JSON-LD                                                            */
@@ -78,7 +78,7 @@ export default async function HomePage() {
       <HomepageJsonLd />
 
       {/* =============================================================
-          1 · HERO — Cinematic split: massive type left, image right
+          1 · HERO, Cinematic split: massive type left, image right
           ============================================================= */}
       <section className="bg-foreground text-background relative overflow-hidden grain">
         <div className="grid lg:grid-cols-2 lg:min-h-[92vh]">
@@ -93,7 +93,7 @@ export default async function HomePage() {
               is <em className="font-semibold not-italic">Missing</em>
             </h1>
             <p className="text-base sm:text-lg text-background/60 max-w-[26rem] leading-[1.7] mb-10 fade-in-up-2">
-              Premium Japanese steel knives — sharper, harder, lighter.
+              Premium Japanese steel knives, sharper, harder, lighter.
               Designed for home cooks who care about craft.
             </p>
             <div className="flex flex-wrap gap-3 fade-in-up-3">
@@ -118,7 +118,7 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* Image — desktop only (marketing graphic has baked-in text) */}
+          {/* Image, desktop only (marketing graphic has baked-in text) */}
           <div className="relative hidden lg:block order-2">
             <Image
               src="/hero-brand.jpg"
@@ -136,7 +136,7 @@ export default async function HomePage() {
       </section>
 
       {/* =============================================================
-          2 · TRUST BAR — Horizontal, compact, icon-free
+          2 · TRUST BAR, Horizontal, compact, icon-free
           ============================================================= */}
       <section className="border-b border-border">
         <div className="container mx-auto px-5 lg:px-8">
@@ -157,7 +157,7 @@ export default async function HomePage() {
       </section>
 
       {/* =============================================================
-          3 · LATEST ARRIVALS — Product grid
+          3 · LATEST ARRIVALS, Product grid
           ============================================================= */}
       <section className="container mx-auto px-5 lg:px-8 pt-20 pb-16 lg:pt-28 lg:pb-24">
         <div className="flex items-end justify-between mb-12">
@@ -194,7 +194,7 @@ export default async function HomePage() {
       </section>
 
       {/* =============================================================
-          4 · WHY JAPANESE STEEL — Oversized numerals as visual anchors
+          4 · WHY JAPANESE STEEL, Oversized numerals as visual anchors
           ============================================================= */}
       <section className="bg-foreground text-background relative overflow-hidden grain">
         <div className="container mx-auto px-5 lg:px-8 py-20 lg:py-32 relative z-10">
@@ -260,7 +260,7 @@ export default async function HomePage() {
       </section>
 
       {/* =============================================================
-          5 · SHOP BY STYLE — Category grid with hairline borders
+          5 · SHOP BY STYLE, Category grid with hairline borders
           ============================================================= */}
       <section className="container mx-auto px-5 lg:px-8 py-20 lg:py-28">
         <div className="text-center mb-14">
@@ -274,11 +274,11 @@ export default async function HomePage() {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border">
           {[
-            { name: "Gyuto", tag: "Most Popular", desc: "The Japanese chef knife — a versatile all-rounder for every task.", href: "/product?category=gyuto" },
+            { name: "Gyuto", tag: "Most Popular", desc: "The Japanese chef knife, a versatile all-rounder for every task.", href: "/product?category=gyuto" },
             { name: "Santoku", tag: "Best for Beginners", desc: "Three virtues: slicing, dicing, mincing. The home cook's best friend.", href: "/product?category=santoku" },
             { name: "Nakiri", tag: "Vegetable Specialist", desc: "Flat blade, clean push-cuts. Purpose-built for vegetables.", href: "/product?category=nakiri" },
             { name: "Kiritsuke", tag: "Statement Piece", desc: "Commanding presence with a distinctive clipped tip and serious performance.", href: "/product?category=kiritsuke" },
-            { name: "Bunka", tag: "Compact & Versatile", desc: "Agile with a reverse-tanto tip — excels at precision work.", href: "/product?category=bunka" },
+            { name: "Bunka", tag: "Compact & Versatile", desc: "Agile with a reverse-tanto tip, excels at precision work.", href: "/product?category=bunka" },
             { name: "All Knives", tag: "Full Collection", desc: "Browse every Japanese kitchen knife and accessory we offer.", href: "/product" },
           ].map((cat) => (
             <Link
@@ -302,7 +302,7 @@ export default async function HomePage() {
       </section>
 
       {/* =============================================================
-          6 · TRUST POINTS — Warm full-width, numbered trust points
+          6 · TRUST POINTS, Warm full-width, numbered trust points
           ============================================================= */}
       <section className="bg-warm">
         <div className="container mx-auto px-5 lg:px-8 py-20 lg:py-28">
@@ -335,7 +335,7 @@ export default async function HomePage() {
       </section>
 
       {/* =============================================================
-          7 · GIFT — Centred editorial with occasion tags
+          7 · GIFT, Centred editorial with occasion tags
           ============================================================= */}
       <section className="border-t border-border">
         <div className="container mx-auto px-5 lg:px-8 py-20 lg:py-28">
@@ -348,7 +348,7 @@ export default async function HomePage() {
               for Any Occasion
             </h2>
             <p className="text-base text-muted-foreground leading-[1.7] max-w-md mx-auto">
-              Every Shimeru knife ships in a premium gift box — ready to
+              Every Shimeru knife ships in a premium gift box, ready to
               impress, straight out of the box.
             </p>
           </div>
@@ -376,7 +376,7 @@ export default async function HomePage() {
       </section>
 
       {/* =============================================================
-          8 · KNIFE GUIDE CTA — Dark, centred, commanding
+          8 · KNIFE GUIDE CTA, Dark, centred, commanding
           ============================================================= */}
       <section className="bg-warm relative overflow-hidden grain">
         <div className="container mx-auto px-5 lg:px-8 py-24 lg:py-32 text-center relative z-10">

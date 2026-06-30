@@ -21,7 +21,7 @@ interface Props {
   belowButton?: ReactNode;
 }
 
-// US federal holidays — update annually
+// US federal holidays, update annually
 const US_HOLIDAYS: Set<string> = new Set([
   // 2025
   "2025-01-01", "2025-01-20", "2025-02-17", "2025-05-26",
@@ -59,7 +59,7 @@ function getEstimatedDelivery(): { standard: DeliveryRange; express: DeliveryRan
 
   // Cutoff: 1pm Central Time (Illinois fulfillment warehouse).
   // Compute the current hour in Central Time so customers in every browser
-  // timezone see the same dispatch logic — and it matches the cutoff stated
+  // timezone see the same dispatch logic, and it matches the cutoff stated
   // on /shipping-and-delivery and configured in Merchant Center.
   const ctHour = parseInt(
     new Intl.DateTimeFormat("en-US", {
@@ -162,7 +162,7 @@ export function AddToCartButton({ product, attributes, belowButton }: Props) {
         return;
       }
     } catch {
-      // If stock check fails, allow the add — checkout will catch it
+      // If stock check fails, allow the add, checkout will catch it
     }
     addItem(product, qty, effectiveVariation?.id);
     trackAddToCart(product, qty);
@@ -210,7 +210,7 @@ export function AddToCartButton({ product, attributes, belowButton }: Props) {
         </div>
       )}
 
-      {/* Estimated delivery — split by shipping option to match checkout */}
+      {/* Estimated delivery, split by shipping option to match checkout */}
       {canAdd && (
         <div className="text-sm text-muted-foreground space-y-1">
           <div>

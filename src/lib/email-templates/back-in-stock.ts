@@ -1,4 +1,4 @@
-// Back-in-stock email — sent when a product a customer asked about returns to
+// Back-in-stock email, sent when a product a customer asked about returns to
 // stock. Shares the visual language of order-confirmed.ts / order-shipped.ts:
 // table-based, inline styles, sRGB hex (no oklch), web-safe fonts, Georgia for
 // headers. Built for Outlook. (US store variant.)
@@ -6,10 +6,10 @@
 export type BackInStockData = {
   productName: string;
   productUrl: string; // absolute, already carries tracking/UTM params
-  imageUrl?: string; // absolute URL — required for email clients to load
+  imageUrl?: string; // absolute URL, required for email clients to load
   priceLabel?: string; // formatted current price, e.g. "$89.00"
   regularPriceLabel?: string; // formatted RRP for the strikethrough, when on sale
-  savePercent?: number; // e.g. 20 — shown as "Save 20%" when on sale
+  savePercent?: number; // e.g. 20, shown as "Save 20%" when on sale
 };
 
 const C = {
@@ -81,7 +81,7 @@ export function renderBackInStock(d: BackInStockData): {
 </head>
 <body style="margin:0;padding:0;background:${C.bg};font-family:${FONT_SANS};color:${C.foreground};-webkit-font-smoothing:antialiased;">
   <span style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;font-size:1px;line-height:1px;max-height:0;max-width:0;overflow:hidden;">
-    ${name} is back — and you asked us to let you know.
+    ${name} is back, and you asked us to let you know.
   </span>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${C.bg};">
     <tr>
@@ -155,7 +155,7 @@ export function renderBackInStock(d: BackInStockData): {
 BACK IN STOCK
 
 It's back
-You asked us to let you know when this came back — here it is. Stock is limited, so don't wait too long.
+You asked us to let you know when this came back, here it is. Stock is limited, so don't wait too long.
 
 ${d.productName}${priceText}
 

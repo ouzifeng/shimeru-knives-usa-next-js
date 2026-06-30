@@ -151,7 +151,7 @@ export default async function ProductsPage({ searchParams }: Props) {
     : null;
   // Hand-written SEO content for this category (or the all-products default
   // when no category filter is applied). Null when this is a search results
-  // page or an unknown category — in that case we skip the SEO blocks.
+  // page or an unknown category, in that case we skip the SEO blocks.
   const seoContent = params.search
     ? null
     : category

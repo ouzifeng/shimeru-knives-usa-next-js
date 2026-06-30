@@ -11,7 +11,7 @@ interface PageProps {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Affiliate Agreement — Shimeru Knives",
+  title: "Affiliate Agreement, Shimeru Knives",
   robots: { index: false, follow: false },
 };
 

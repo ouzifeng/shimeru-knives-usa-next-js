@@ -52,7 +52,7 @@ export function NotifyWhenBackInStock({
     return (
       <div className="pt-2">
         <p className="text-sm text-green-700 font-medium">
-          Got it — we&rsquo;ll email you when {productName} is back in stock.
+          Got it, we&rsquo;ll email you when {productName} is back in stock.
         </p>
       </div>
     );

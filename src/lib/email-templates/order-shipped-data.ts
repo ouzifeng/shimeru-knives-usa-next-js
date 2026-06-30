@@ -1,7 +1,7 @@
 // Builds OrderShippedData from a real Supabase order + WC enrichment
 // (shipping method + shipment tracking). Used by the live sync send, the
 // admin preview, and the send-test route so they all render identically.
-// (US store variant — US carrier tracking URLs.)
+// (US store variant, US carrier tracking URLs.)
 
 import type { OrderShippedData } from "./order-shipped";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -56,7 +56,7 @@ function resolveTracking(item: WCTrackingItem | undefined): {
     provider = "DHL";
     url = `https://www.dhl.com/us-en/home/tracking.html?tracking-id=${encodeURIComponent(number)}`;
   } else {
-    // Unknown provider — title-case the slug, no reliable URL.
+    // Unknown provider, title-case the slug, no reliable URL.
     provider = slug
       ? slug.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
       : "your carrier";
@@ -113,7 +113,7 @@ async function buildFromOrderRow(order: {
         : [];
       tracking = resolveTracking(trackItems[0]);
     } catch {
-      // WC unreachable — send without tracking/method rather than not at all.
+      // WC unreachable, send without tracking/method rather than not at all.
     }
   }
 

@@ -71,7 +71,7 @@ export default async function SalePage({ searchParams }: Props) {
           <div className="text-center py-20">
             <p className="font-serif text-2xl text-muted-foreground mb-2">No sale items right now</p>
             <p className="text-sm text-muted-foreground">
-              Check back soon — we regularly add new deals.
+              Check back soon, we regularly add new deals.
             </p>
           </div>
         )}

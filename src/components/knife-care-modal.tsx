@@ -32,35 +32,35 @@ export function KnifeCareModal() {
 
               <img
                 src="/knife-care.jpg"
-                alt="Knife care guide — Rinse, Dry, Store"
+                alt="Knife care guide: Rinse, Dry, Store"
                 className="w-full rounded mb-6"
               />
 
               <div className="space-y-5">
                 <div>
                   <p className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-1">
-                    Step 1 — Rinse
+                    Step 1: Rinse
                   </p>
                   <p className="text-sm leading-relaxed">
-                    Warm water and mild soap after each use. Never put your knife in the dishwasher — the
+                    Warm water and mild soap after each use. Never put your knife in the dishwasher, the
                     harsh detergents and jostling will damage the edge and handle.
                   </p>
                 </div>
                 <div>
                   <p className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-1">
-                    Step 2 — Dry
+                    Step 2: Dry
                   </p>
                   <p className="text-sm leading-relaxed">
-                    Towel dry immediately. Don&apos;t leave it wet or in the sink — even stainless steel
+                    Towel dry immediately. Don&apos;t leave it wet or in the sink, even stainless steel
                     can develop spots if left damp.
                   </p>
                 </div>
                 <div>
                   <p className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-1">
-                    Step 3 — Store
+                    Step 3: Store
                   </p>
                   <p className="text-sm leading-relaxed">
-                    Use a knife block, magnetic strip, or blade guard. Never toss it loose in a drawer —
+                    Use a knife block, magnetic strip, or blade guard. Never toss it loose in a drawer, 
                     it dulls the edge and is a safety hazard.
                   </p>
                 </div>
@@ -68,7 +68,7 @@ export function KnifeCareModal() {
 
               <div className="mt-6 pt-5 border-t border-border">
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  That&apos;s it — no special maintenance, no fussy rituals. Your Shimeru knife is designed
+                  That&apos;s it, no special maintenance, no fussy rituals. Your Shimeru knife is designed
                   for daily use. With these three steps it&apos;ll stay razor-sharp for years.
                 </p>
               </div>

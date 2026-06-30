@@ -7,7 +7,7 @@
 //   3. The Marketing tab in the admin auto-discovers anything registered here.
 //
 // All marketing sends go through Postmark's BROADCAST stream
-// (MessageStream: "broadcast") — never the transactional stream.
+// (MessageStream: "broadcast"), never the transactional stream.
 
 export type MarketingRenderArgs = {
   recipientName?: string;

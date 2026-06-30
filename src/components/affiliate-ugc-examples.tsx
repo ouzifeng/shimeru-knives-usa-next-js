@@ -6,7 +6,7 @@
 // clips before this page goes live.
 //
 // Embedding uses Instagram's public no-auth iframe endpoint
-// (https://www.instagram.com/p/{shortcode}/embed) — no API token required.
+// (https://www.instagram.com/p/{shortcode}/embed), no API token required.
 // To change the examples, edit POST_SHORTCODES below.
 
 const POST_SHORTCODES = [

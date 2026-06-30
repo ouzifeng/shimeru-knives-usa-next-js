@@ -188,9 +188,9 @@ function ProductJsonLd({ product, seo }: { product: Product; seo: any }) {
           { "@type": "Question", name: "Do Your Knives Come With Boxes?", acceptedAnswer: { "@type": "Answer", text: "Yes, all knives and knife sets come in a presentation box." } },
           { "@type": "Question", name: "How Long Does Shipping Take?", acceptedAnswer: { "@type": "Answer", text: "We offer free USPS Priority Mail shipping on all orders, delivered in 3–5 business days. Upgrade to USPS Priority Mail Express at checkout for $5.99 to receive your order in 1–3 business days. All orders placed before 12pm EST are shipped the same day." } },
           { "@type": "Question", name: "Is Tracking Available?", acceptedAnswer: { "@type": "Answer", text: "Yes, USPS will provide tracking updates via email." } },
-          { "@type": "Question", name: "Are Your Products Age Restricted?", acceptedAnswer: { "@type": "Answer", text: "Yes — it's our store policy that customers must be 18 or older to purchase a knife from us. By placing an order, you confirm you meet this requirement." } },
-          { "@type": "Question", name: "Are You A Dropshipping Site?", acceptedAnswer: { "@type": "Answer", text: "Absolutely not. Shimeru is our own branded knife line, stocked in our US fulfillment partner's warehouse in Illinois. Every US order is picked, packed and shipped from there via USPS Priority Mail — orders placed before 12pm EST go out the same day, tracked, with delivery in 3–5 business days. A lot of sites you'll see selling lookalike Damascus knives are dropshippers fulfilling directly from China. The easiest tell is the delivery estimate: if a US site quotes 5+ business days, the knife is almost certainly on a slow boat from a warehouse in Guangzhou, not sitting on a shelf in the States. USPS Priority Mail doesn't take that long — do not be fooled by imitations. The other tell comes after the sale. When something goes wrong, dropshippers ask you to ship the knife back to a Chinese return address at your own expense — which usually costs more than the knife. We handle every return ourselves through our Returns & Refunds page, to a US address, with no hoops." } },
-          { "@type": "Question", name: "How Do I Return A Knife?", acceptedAnswer: { "@type": "Answer", text: "Returns are handled through our self-service Returns & Refunds portal — enter your order number, follow the steps, and we'll refund you once the knife arrives back with us." } },
+          { "@type": "Question", name: "Are Your Products Age Restricted?", acceptedAnswer: { "@type": "Answer", text: "Yes, it's our store policy that customers must be 18 or older to purchase a knife from us. By placing an order, you confirm you meet this requirement." } },
+          { "@type": "Question", name: "Are You A Dropshipping Site?", acceptedAnswer: { "@type": "Answer", text: "Absolutely not. Shimeru is our own branded knife line, stocked in our US fulfillment partner's warehouse in Illinois. Every US order is picked, packed and shipped from there via USPS Priority Mail, orders placed before 12pm EST go out the same day, tracked, with delivery in 3–5 business days. A lot of sites you'll see selling lookalike Damascus knives are dropshippers fulfilling directly from China. The easiest tell is the delivery estimate: if a US site quotes 5+ business days, the knife is almost certainly on a slow boat from a warehouse in Guangzhou, not sitting on a shelf in the States. USPS Priority Mail doesn't take that long, do not be fooled by imitations. The other tell comes after the sale. When something goes wrong, dropshippers ask you to ship the knife back to a Chinese return address at your own expense, which usually costs more than the knife. We handle every return ourselves through our Returns & Refunds page, to a US address, with no hoops." } },
+          { "@type": "Question", name: "How Do I Return A Knife?", acceptedAnswer: { "@type": "Answer", text: "Returns are handled through our self-service Returns & Refunds portal, enter your order number, follow the steps, and we'll refund you once the knife arrives back with us." } },
         ],
       }) }} />
     </>
@@ -236,7 +236,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       <ProductJsonLd product={product} seo={seo} />
 
       <div className="container mx-auto px-4 lg:px-8 py-6 lg:py-12 overflow-hidden">
-        {/* Breadcrumb — hidden on mobile, not useful on small screens */}
+        {/* Breadcrumb, hidden on mobile, not useful on small screens */}
         <nav aria-label="Breadcrumb" className="hidden md:block text-xs tracking-wide text-muted-foreground mb-8">
           <ol className="flex items-center gap-2 flex-wrap">
             <li><a href="/" className="hover:text-foreground transition-colors">Home</a></li>
@@ -312,7 +312,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 ) : product.stock_quantity !== null && product.stock_quantity > 0 && product.stock_quantity < 10 ? (
                   <>
                     <span className="h-2.5 w-2.5 rounded-full bg-amber-500 shrink-0" />
-                    <span className="text-base text-amber-600 font-medium">Low stock — only {product.stock_quantity} left</span>
+                    <span className="text-base text-amber-600 font-medium">Low stock, only {product.stock_quantity} left</span>
                   </>
                 ) : (
                   <>
@@ -404,7 +404,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           </div>
         </div>
 
-        {/* Reviews — full width, streamed via Suspense */}
+        {/* Reviews, full width, streamed via Suspense */}
         <div className="mt-12 lg:mt-16 grid md:grid-cols-2 gap-12 lg:gap-16">
           {storeConfig.showReviews && (
             <div>

@@ -104,7 +104,7 @@ async function buildFromOrderRow(
     return {
       name: p?.name ?? `Product #${li.pid}`,
       quantity: li.qty || 1,
-      total: lineTotal != null ? formatPrice(lineTotal) : "—",
+      total: lineTotal != null ? formatPrice(lineTotal) : "-",
       imageUrl: p?.images?.[0]?.src,
     };
   });
@@ -130,7 +130,7 @@ async function buildFromOrderRow(
       shippingLabel = t > 0 ? formatPrice(t) : "Free";
     }
   } catch {
-    // WC API call failed — fall back to "Free" label and no method-specific copy
+    // WC API call failed, fall back to "Free" label and no method-specific copy
   }
 
   const firstName = (order.customer_name || "Friend").split(/\s+/)[0];

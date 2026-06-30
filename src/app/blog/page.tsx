@@ -5,7 +5,7 @@ import { storeConfig } from "../../../store.config";
 
 export const metadata: Metadata = {
   title: `Blog | ${storeConfig.name}`,
-  description: "Expert guides on Japanese kitchen knives — care tips, steel types, knife comparisons, and the craft behind every blade.",
+  description: "Expert guides on Japanese kitchen knives, care tips, steel types, knife comparisons, and the craft behind every blade.",
   alternates: { canonical: `${storeConfig.url}/blog` },
 };
 
