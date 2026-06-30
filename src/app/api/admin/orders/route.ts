@@ -24,6 +24,32 @@ async function fetchAllOrders(sb: ReturnType<typeof getSupabaseAdmin>) {
   return all;
 }
 
+// Same 1000-row clamp applies to any table. Page through so we get every row.
+// Critical for trustpilot_invites: with >1000 invite rows, an unpaginated read
+// silently drops the rest, making already-invited orders look un-invited (they
+// re-appear as "to review" and let you re-send).
+async function fetchAllRows<T>(
+  sb: ReturnType<typeof getSupabaseAdmin>,
+  table: string,
+  columns: string
+): Promise<T[]> {
+  const PAGE = 1000;
+  let from = 0;
+  const all: T[] = [];
+  while (true) {
+    const { data, error } = await sb
+      .from(table)
+      .select(columns)
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    all.push(...(data as T[]));
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
 export async function GET() {
   const sb = getSupabaseAdmin();
 
@@ -35,13 +61,14 @@ export async function GET() {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 
-  const [costsRes, productsRes, variationsRes, funnelRes, tpRes] = await Promise.all([
+  const [costsRes, productsRes, variationsRes, funnelRes, tpData] = await Promise.all([
     sb.from("product_costs").select("*"),
     sb.from("products").select("id, sku").eq("status", "publish"),
     sb.from("product_variations").select("id, product_id, sku"),
     sb.from("funnel_events").select("session_id, event, created_at").order("created_at", { ascending: true }),
-    sb.from("trustpilot_invites").select("order_id, status, sent_at"),
+    fetchAllRows<{ order_id: number; status: string; sent_at: string | null }>(sb, "trustpilot_invites", "order_id, status, sent_at"),
   ]);
+  const tpRes = { data: tpData };
 
   // Shape the response to mimic the prior `ordersRes` shape so the downstream code stays unchanged
   const ordersRes = { data: ordersData, error: null as null | string };
