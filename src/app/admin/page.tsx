@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import type { OrderSyncState, SyncState, WCShippingMethod, WCShippingZone } from "@/lib/types";
 import { formatPrice } from "@/lib/format";
+import { htmlToText } from "@/lib/html-to-text";
 import { Input } from "@/components/ui/input";
 import {
   Globe,
@@ -3815,7 +3816,7 @@ function SupportTicketDetail({
                 <span>{formatTicketDate(m.created_at)}</span>
               </div>
               <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                {m.content_text || "(no content)"}
+                {m.content_text?.trim() || htmlToText(m.content_html) || "(no content)"}
               </div>
               {m.attachments && m.attachments.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">

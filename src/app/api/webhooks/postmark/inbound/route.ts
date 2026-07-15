@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendSupportAdminNotification } from "@/lib/support-notifications";
 import { sendTransactionalEmail } from "@/lib/postmark";
 import { putObject, kindFromContentType, r2Configured } from "@/lib/r2";
+import { htmlToText } from "@/lib/html-to-text";
 import type { AffiliateAttachment } from "@/lib/affiliate-attachments";
 
 const REGION = "us";
@@ -200,7 +201,15 @@ export async function POST(req: NextRequest) {
   const customerName =
     payload.FromFull?.Name?.trim() || payload.FromName?.trim() || customerEmail.split("@")[0];
   const subject = (payload.Subject || "No subject").trim();
-  const textBody = (payload.StrippedTextReply || payload.TextBody || "").trim();
+  // HTML-only senders (iOS Mail, BT/Outlook webmail) ship no plain-text part, so
+  // Postmark has nothing to put in StrippedTextReply or TextBody. Recover the body
+  // from the HTML rather than storing an empty string.
+  const textBody = (
+    payload.StrippedTextReply ||
+    payload.TextBody ||
+    htmlToText(payload.HtmlBody) ||
+    ""
+  ).trim();
   const htmlBody = payload.HtmlBody ?? null;
 
   // Threading: prefer In-Reply-To, fall back to References (mail clients vary).
