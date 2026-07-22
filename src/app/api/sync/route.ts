@@ -12,8 +12,9 @@ async function handleSync(req: NextRequest) {
 
   const result = await syncProducts();
 
-  // If products were synced, revalidate cached pages
-  if (result.synced > 0) {
+  // If products were synced (or category relations were self-healed),
+  // revalidate cached pages so the storefront reflects the change.
+  if (result.synced > 0 || result.healed > 0) {
     revalidatePath("/");
     revalidatePath("/product");
     revalidatePath("/product/[slug]", "page");

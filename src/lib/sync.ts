@@ -5,7 +5,7 @@ import type { WCProduct } from "./types";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
-export async function syncProducts(): Promise<{ synced: number; errors: string | null }> {
+export async function syncProducts(): Promise<{ synced: number; healed: number; errors: string | null }> {
   const admin = getSupabaseAdmin();
 
   // Check if already syncing
@@ -25,7 +25,7 @@ export async function syncProducts(): Promise<{ synced: number; errors: string |
         .update({ status: "idle", sync_phase: null, errors: "Auto-reset: stale lock" })
         .eq("id", 1);
     } else {
-      return { synced: 0, errors: "Sync already in progress" };
+      return { synced: 0, healed: 0, errors: "Sync already in progress" };
     }
   }
 
@@ -47,6 +47,7 @@ export async function syncProducts(): Promise<{ synced: number; errors: string |
     .eq("id", 1);
 
   let totalSynced = 0;
+  let totalHealed = 0;
   let syncError: string | null = null;
 
   try {
@@ -121,6 +122,15 @@ export async function syncProducts(): Promise<{ synced: number; errors: string |
         await admin.from("products").delete().in("id", toDelete);
       }
     }
+
+    // Self-heal category relations. The sync above is incremental: it only
+    // rewrites relation rows for products WooCommerce reports as modified, so
+    // if product_categories ever loses rows for an unmodified product (a past
+    // failed write, a manual truncate) nothing would ever restore them. Rebuild
+    // any missing rows from products.categories, the JSONB copy written on every
+    // upsert and thus the source of truth. Runs each tick even when nothing
+    // changed, so drift is corrected within one cron cycle.
+    totalHealed = await reconcileCategories(admin);
   } catch (err) {
     syncError = err instanceof Error ? err.message : "Unknown sync error";
   }
@@ -137,7 +147,52 @@ export async function syncProducts(): Promise<{ synced: number; errors: string |
     })
     .eq("id", 1);
 
-  return { synced: totalSynced, errors: syncError };
+  return { synced: totalSynced, healed: totalHealed, errors: syncError };
+}
+
+/**
+ * Rebuild missing product_categories rows from the products.categories JSONB.
+ * Only inserts rows for products that currently have none, so it never fights
+ * the incremental sync (which owns content changes) and never deletes. Returns
+ * the number of rows inserted. Throws on write failure so drift surfaces as a
+ * real sync error instead of silently persisting.
+ */
+async function reconcileCategories(
+  admin: ReturnType<typeof getSupabaseAdmin>
+): Promise<number> {
+  const [productsRes, existingRes] = await Promise.all([
+    admin.from("products").select("id, categories"),
+    admin.from("product_categories").select("product_id"),
+  ]);
+  if (productsRes.error) throw new Error(`reconcile read products failed: ${productsRes.error.message}`);
+  if (existingRes.error) throw new Error(`reconcile read categories failed: ${existingRes.error.message}`);
+
+  const haveRows = new Set((existingRes.data || []).map((r) => r.product_id));
+  const missing: {
+    product_id: number;
+    category_id: number | null;
+    category_name: string;
+    category_slug: string;
+  }[] = [];
+  for (const p of productsRes.data || []) {
+    if (haveRows.has(p.id)) continue;
+    const cats = Array.isArray(p.categories) ? p.categories : [];
+    for (const c of cats) {
+      if (c && c.slug) {
+        missing.push({
+          product_id: p.id,
+          category_id: c.id ?? null,
+          category_name: c.name ?? c.slug,
+          category_slug: c.slug,
+        });
+      }
+    }
+  }
+
+  if (!missing.length) return 0;
+  const { error } = await admin.from("product_categories").insert(missing);
+  if (error) throw new Error(`reconcile insert categories failed: ${error.message}`);
+  return missing.length;
 }
 
 async function upsertProducts(products: WCProduct[]) {
@@ -239,7 +294,7 @@ async function upsertProducts(products: WCProduct[]) {
 
   // Upsert products, variations, and delete old relations in parallel
   const variableIds = variableProducts.map((p) => p.id);
-  await Promise.all([
+  const writeResults = await Promise.all([
     admin.from("products").upsert(rows, { onConflict: "id" }),
     admin.from("product_attributes").delete().in("product_id", productIds),
     admin.from("product_categories").delete().in("product_id", productIds),
@@ -248,10 +303,18 @@ async function upsertProducts(products: WCProduct[]) {
       ? [admin.from("product_variations").delete().in("product_id", variableIds)]
       : []),
   ]);
+  // Surface any write failure. supabase-js resolves (does not throw) on a DB
+  // error, so an unchecked result here is how the relation tables silently lost
+  // their rows before: the delete above committed, a later insert failed quietly,
+  // and no one knew until a filter returned nothing.
+  for (const r of writeResults) {
+    if (r?.error) throw new Error(`product write failed: ${r.error.message}`);
+  }
 
   // Upsert variations after clearing old ones
   if (allVariationRows.length) {
-    await admin.from("product_variations").upsert(allVariationRows, { onConflict: "id" });
+    const { error } = await admin.from("product_variations").upsert(allVariationRows, { onConflict: "id" });
+    if (error) throw new Error(`variation upsert failed: ${error.message}`);
   }
 
   // Insert fresh attributes and categories in parallel
@@ -291,5 +354,10 @@ async function upsertProducts(products: WCProduct[]) {
   if (attrRows.length) inserts.push(admin.from("product_attributes").insert(attrRows));
   if (catRows.length) inserts.push(admin.from("product_categories").insert(catRows));
   if (tagRows.length) inserts.push(admin.from("product_tags").insert(tagRows));
-  if (inserts.length) await Promise.all(inserts);
+  if (inserts.length) {
+    const insertResults = await Promise.all(inserts);
+    for (const r of insertResults) {
+      if (r?.error) throw new Error(`relation insert failed: ${r.error.message}`);
+    }
+  }
 }
