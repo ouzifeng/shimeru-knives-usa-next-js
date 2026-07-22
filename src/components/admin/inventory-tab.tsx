@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
@@ -12,10 +12,14 @@ type SkuStatus = "ok" | "warning" | "critical" | "out_of_stock" | "insufficient_
 interface SkuRow {
   sku: string;
   productName: string;
+  slug: string;
+  imageUrl: string | null;
   stockQty: number;
   velocityUsed: number;
   velocity7d: number;
   velocity30d: number;
+  units30d: number;
+  units90d: number;
   incomingQty: number;
   daysRemaining: number | null;
   recommendedOrderQty: number;
@@ -156,23 +160,6 @@ function formatDate(dateStr: string | null): string {
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 
-function SkuStatusBadge({ status }: { status: SkuStatus }) {
-  const config: Record<SkuStatus, { dot: string; label: string }> = {
-    ok: { dot: "bg-emerald-500", label: "Healthy" },
-    warning: { dot: "bg-amber-500", label: "Warning" },
-    critical: { dot: "bg-orange-500", label: "Critical" },
-    out_of_stock: { dot: "bg-red-600", label: "Out of Stock" },
-    insufficient_data: { dot: "bg-slate-400", label: "No Data" },
-  };
-  const { dot, label } = config[status] ?? { dot: "bg-slate-400", label: status };
-  return (
-    <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-      <span className={`size-2 shrink-0 rounded-full ${dot}`} />
-      {label}
-    </span>
-  );
-}
-
 function POStatusBadge({ status }: { status: string }) {
   const config: Record<string, { dot: string; label: string }> = {
     draft: { dot: "bg-slate-400", label: "Draft" },
@@ -190,96 +177,129 @@ function POStatusBadge({ status }: { status: string }) {
   );
 }
 
-// ─── Stock Health Table ────────────────────────────────────────────────────────
+// ─── Best Sellers Table ────────────────────────────────────────────────────────
 
-type StockFilter = "all" | "critical" | "warning" | "ok" | "out_of_stock";
+type SortKey = "units90d" | "units30d";
 
-function StockHealthTable({ skus }: { skus: SkuRow[] }) {
-  const [filter, setFilter] = useState<StockFilter>("all");
+function BestSellersTable({ skus }: { skus: SkuRow[] }) {
+  const [sortKey, setSortKey] = useState<SortKey>("units90d");
 
-  const filtered =
-    filter === "all"
-      ? skus
-      : skus.filter((s) =>
-          filter === "ok"
-            ? s.status === "ok" || s.status === "insufficient_data"
-            : s.status === filter
-        );
+  // Show ALL products, ranked by the chosen window (the other window breaks ties).
+  const other: SortKey = sortKey === "units90d" ? "units30d" : "units90d";
+  const ranked = [...skus].sort((a, b) => b[sortKey] - a[sortKey] || b[other] - a[other]);
 
-  const filters: { key: StockFilter; label: string }[] = [
-    { key: "all", label: "All" },
-    { key: "critical", label: "Critical" },
-    { key: "warning", label: "Warning" },
-    { key: "ok", label: "Healthy" },
-    { key: "out_of_stock", label: "Out of Stock" },
-  ];
-
-  const rowBg: Record<SkuStatus, string> = {
-    out_of_stock: "bg-red-50 dark:bg-red-950/30",
-    critical: "bg-orange-50 dark:bg-orange-950/30",
-    warning: "bg-amber-50 dark:bg-amber-950/30",
-    ok: "",
-    insufficient_data: "",
-  };
+  const SortHeader = ({ col, label }: { col: SortKey; label: string }) => (
+    <th className="px-4 py-2 text-right text-xs font-medium">
+      <button
+        onClick={() => setSortKey(col)}
+        className={`inline-flex items-center gap-1 transition-colors ${
+          sortKey === col ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        {label}
+        <span className="text-[10px]">{sortKey === col ? "▼" : "↕"}</span>
+      </button>
+    </th>
+  );
 
   return (
     <div className="space-y-3">
-      {/* Filter buttons */}
-      <div className="flex flex-wrap gap-2">
-        {filters.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              filter === f.key
-                ? "bg-foreground text-background"
-                : "bg-muted text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      <p className="text-xs text-muted-foreground">
+        Every product ({ranked.length}), ranked by units sold. Click 90d or 30d to sort.
+      </p>
 
-      {/* Table */}
-      <div className="overflow-auto rounded-lg border max-h-[70vh]">
+      <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">
-          <thead className="border-b bg-muted/40 sticky top-0 z-10">
+          <thead className="border-b bg-muted/40">
             <tr>
+              <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">#</th>
+              <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground"></th>
               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">SKU</th>
               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Product</th>
+              <SortHeader col="units90d" label="90d Sales" />
+              <SortHeader col="units30d" label="30d Sales" />
               <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">Stock</th>
-              <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">7d Vel</th>
-              <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">30d Vel</th>
               <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">Incoming</th>
-              <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">Days Left</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Status</th>
+              <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">Stock + Inc.</th>
             </tr>
           </thead>
           <tbody className="divide-y">
-            {filtered.length === 0 && (
+            {ranked.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-6 text-center text-sm text-muted-foreground">
-                  No SKUs match this filter.
+                <td colSpan={9} className="px-4 py-6 text-center text-sm text-muted-foreground">
+                  No products found.
                 </td>
               </tr>
             )}
-            {filtered.map((row) => (
-              <tr key={row.sku} className={rowBg[row.status]}>
-                <td className="px-4 py-2 font-mono text-xs tabular-nums">{row.sku}</td>
-                <td className="px-4 py-2 max-w-[200px] truncate">{row.productName}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{row.stockQty}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{row.velocity7d.toFixed(1)}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{row.velocity30d.toFixed(1)}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{row.incomingQty}</td>
-                <td className="px-4 py-2 text-right tabular-nums">
-                  {row.daysRemaining === null ? "N/A" : row.daysRemaining}
-                </td>
-                <td className="px-4 py-2">
-                  <SkuStatusBadge status={row.status} />
-                </td>
-              </tr>
-            ))}
+            {ranked.map((row, i) => {
+              const total = row.stockQty + row.incomingQty;
+              // Flag rows where current stock is empty and nothing is inbound.
+              const dry = row.stockQty <= 0 && row.incomingQty <= 0;
+              // Running low: 90d sales outpace everything on hand plus inbound.
+              const runningLow = !dry && row.units90d > total;
+              const href = row.slug ? `/product/${row.slug}` : null;
+              const thumb = row.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={row.imageUrl}
+                  alt={row.productName}
+                  className="size-9 rounded object-cover bg-muted"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="size-9 rounded bg-muted" />
+              );
+              return (
+                <tr
+                  key={row.sku}
+                  className={
+                    dry
+                      ? "bg-red-50 dark:bg-red-950/30"
+                      : runningLow
+                        ? "bg-orange-50 dark:bg-orange-950/30"
+                        : ""
+                  }
+                >
+                  <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">{i + 1}</td>
+                  <td className="px-2 py-1.5">
+                    {href ? (
+                      <a href={href} target="_blank" rel="noopener noreferrer">
+                        {thumb}
+                      </a>
+                    ) : (
+                      thumb
+                    )}
+                  </td>
+                  <td className="px-4 py-2 font-mono text-xs tabular-nums">
+                    {href ? (
+                      <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80">
+                        {row.sku}
+                      </a>
+                    ) : (
+                      row.sku
+                    )}
+                  </td>
+                  <td className="px-4 py-2 max-w-[220px] truncate">
+                    {href ? (
+                      <a href={href} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline underline-offset-2">
+                        {row.productName}
+                      </a>
+                    ) : (
+                      row.productName
+                    )}
+                  </td>
+                  <td className="px-4 py-2 text-right font-medium tabular-nums">{row.units90d}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{row.units30d}</td>
+                  <td className={`px-4 py-2 text-right tabular-nums ${row.stockQty <= 0 ? "font-medium text-red-600" : ""}`}>
+                    {row.stockQty}
+                  </td>
+                  <td className="px-4 py-2 text-right tabular-nums">
+                    {row.incomingQty > 0 ? row.incomingQty : <span className="text-muted-foreground">—</span>}
+                  </td>
+                  <td className="px-4 py-2 text-right tabular-nums">{total}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -306,6 +326,7 @@ function PODetailPanel({
   const [trackingCarrier, setTrackingCarrier] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
   const [trackingUrl, setTrackingUrl] = useState("");
+  const [expectedArrival, setExpectedArrival] = useState("");
   // qty edits: map of line id -> value
   const [qtyEdits, setQtyEdits] = useState<Record<number, number>>({});
 
@@ -328,6 +349,8 @@ function PODetailPanel({
         if (d.tracking_carrier) setTrackingCarrier(d.tracking_carrier);
         if (d.tracking_number) setTrackingNumber(d.tracking_number);
         if (d.tracking_url) setTrackingUrl(d.tracking_url);
+        if (d.expected_arrival) setExpectedArrival(d.expected_arrival.slice(0, 10));
+        else setExpectedArrival("");
       })
       .catch(() => setError("Failed to load PO details."))
       .finally(() => setLoading(false));
@@ -373,6 +396,26 @@ function PODetailPanel({
       onUpdated();
     } catch {
       setError("Failed to update PO.");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const saveExpectedArrival = async () => {
+    if (!detail || !expectedArrival) return;
+    setUpdating(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/inventory/purchase-orders/${poId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expected_arrival: expectedArrival }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      fetchDetail();
+      onUpdated();
+    } catch {
+      setError("Failed to update arrival date.");
     } finally {
       setUpdating(false);
     }
@@ -552,13 +595,36 @@ function PODetailPanel({
             )}
 
             {isShipped && (
-              <Button
-                size="sm"
-                onClick={() => updateStatus("arrived")}
-                disabled={updating}
-              >
-                {updating ? <Loader2 className="size-4 animate-spin" /> : "Mark Arrived"}
-              </Button>
+              <div className="flex flex-wrap items-end gap-2">
+                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                  Expected arrival
+                  <Input
+                    type="date"
+                    value={expectedArrival}
+                    onChange={(e) => setExpectedArrival(e.target.value)}
+                    className="h-8"
+                  />
+                </label>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={saveExpectedArrival}
+                  disabled={
+                    updating ||
+                    !expectedArrival ||
+                    expectedArrival === (detail.expected_arrival?.slice(0, 10) ?? "")
+                  }
+                >
+                  {updating ? <Loader2 className="size-4 animate-spin" /> : "Save ETA"}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => updateStatus("arrived")}
+                  disabled={updating}
+                >
+                  {updating ? <Loader2 className="size-4 animate-spin" /> : "Mark Arrived"}
+                </Button>
+              </div>
             )}
 
             <Button
@@ -686,9 +752,8 @@ function PurchaseOrdersSection({ initialPOs }: { initialPOs: PendingPO[] }) {
             )}
             {!loadingPOs &&
               displayPOs.map((po) => (
-                <>
+                <Fragment key={po.id}>
                   <tr
-                    key={po.id}
                     className="cursor-pointer hover:bg-muted/40 transition-colors"
                     onClick={() => toggleExpand(po.id)}
                   >
@@ -740,7 +805,7 @@ function PurchaseOrdersSection({ initialPOs }: { initialPOs: PendingPO[] }) {
                       onUpdated={fetchPOs}
                     />
                   )}
-                </>
+                </Fragment>
               ))}
           </tbody>
         </table>
@@ -818,10 +883,10 @@ export function InventoryTab() {
         </div>
       </div>
 
-      {/* Stock Health Table */}
+      {/* Best Sellers */}
       <div className="space-y-3">
-        <h2 className="text-sm font-semibold">Stock Health</h2>
-        <StockHealthTable skus={data.skus} />
+        <h2 className="text-sm font-semibold">Best Sellers</h2>
+        <BestSellersTable skus={data.skus} />
       </div>
 
       {/* Purchase Orders */}

@@ -24,6 +24,10 @@ export interface SkuHealth {
   productName: string;
   productId: number;
   variationId: number | null;
+  /** Product slug for the storefront link (/product/{slug}) */
+  slug: string;
+  /** First product image src, if any */
+  imageUrl: string | null;
   /** Current on-hand stock (from products / product_variations table) */
   stockQty: number;
   /** Daily units sold — higher of 7-day and 30-day rolling averages */
@@ -32,6 +36,10 @@ export interface SkuHealth {
   velocity7d: number;
   /** 30-day rolling daily average */
   velocity30d: number;
+  /** Raw units sold in the last 30 days */
+  units30d: number;
+  /** Raw units sold in the last 90 days */
+  units90d: number;
   /** Units expected from sent/shipped POs */
   incomingQty: number;
   /** Days of cover remaining = (stockQty + incomingQty) / velocityUsed */
@@ -72,8 +80,9 @@ export interface GeneratedPO {
 // Constants
 // ---------------------------------------------------------------------------
 
-const EXCLUDED_PRODUCT_IDS = new Set([10969]);
-const EXCLUDED_NAME_PATTERNS = [/sharpener/i, /sharpening/i, /strop/i, /accessory/i, /accessories/i, /whetstone/i, /cutting board/i, /knife roll/i, /knife bag/i, /magnetic.*strip/i, /knife stand/i, /knife holder/i];
+// NO exclusions. Every product is tracked, nothing filtered out.
+const EXCLUDED_PRODUCT_IDS = new Set<number>([]);
+const EXCLUDED_NAME_PATTERNS: RegExp[] = [];
 const COVERAGE_TARGET_DAYS = 60;
 const WARNING_THRESHOLD_DAYS = 45;
 const CRITICAL_THRESHOLD_DAYS = 30;
@@ -89,6 +98,8 @@ interface RawSku {
   productId: number;
   variationId: number | null;
   stockQty: number;
+  slug: string;
+  imageUrl: string | null;
 }
 
 /** Build a flat list of all trackable SKUs from products + variations. */
@@ -96,16 +107,26 @@ async function resolveSkus(sb: SupabaseClient): Promise<RawSku[]> {
   // Fetch all products (simple + variable parents) that are published
   const { data: products, error: pErr } = await sb
     .from("products")
-    .select("id, name, sku, type, stock_quantity, stock_status, status");
+    .select("id, name, sku, type, stock_quantity, stock_status, status, slug, images");
 
   if (pErr) throw new Error(`resolveSkus/products: ${pErr.message}`);
 
   // Fetch all variations
   const { data: variations, error: vErr } = await sb
     .from("product_variations")
-    .select("id, product_id, sku, stock_quantity, stock_status");
+    .select("id, product_id, sku, stock_quantity, stock_status, image");
 
   if (vErr) throw new Error(`resolveSkus/variations: ${vErr.message}`);
+
+  // Pull the first usable image src from a products.images jsonb array.
+  const firstImage = (images: unknown): string | null => {
+    if (!Array.isArray(images)) return null;
+    for (const img of images) {
+      const src = (img as { src?: string } | null)?.src;
+      if (typeof src === "string" && src) return src;
+    }
+    return null;
+  };
 
   const skus: RawSku[] = [];
 
@@ -128,6 +149,8 @@ async function resolveSkus(sb: SupabaseClient): Promise<RawSku[]> {
         productId: p.id,
         variationId: null,
         stockQty: p.stock_quantity ?? 0,
+        slug: p.slug ?? "",
+        imageUrl: firstImage(p.images),
       });
     }
     // variable parent rows are intentionally skipped — tracked via variations below
@@ -148,12 +171,15 @@ async function resolveSkus(sb: SupabaseClient): Promise<RawSku[]> {
     if (!parent || parent.status !== "publish") continue;
     if (EXCLUDED_NAME_PATTERNS.some((re) => re.test(parent.name))) continue;
 
+    const varImage = (v.image as { src?: string } | null)?.src ?? null;
     skus.push({
       sku: v.sku,
       productName: parent.name,
       productId: v.product_id,
       variationId: v.id,
       stockQty: v.stock_quantity ?? 0,
+      slug: parent.slug ?? "",
+      imageUrl: varImage ?? firstImage(parent.images),
     });
   }
 
@@ -171,18 +197,22 @@ interface VelocityResult {
   sku: string;
   velocity7d: number;
   velocity30d: number;
+  units30d: number;
+  units90d: number;
   firstSaleDate: string | null;
 }
 
 /**
- * Calculate dual-window velocity (7-day and 30-day rolling daily averages).
- * Fetches all completed orders in the last 30 days and aggregates by SKU.
+ * Calculate dual-window velocity (7-day and 30-day rolling daily averages) plus
+ * raw units sold over the 30- and 90-day windows. Fetches all completed orders
+ * in the last 90 days and aggregates by SKU.
  */
 async function calculateVelocities(
   sb: SupabaseClient,
   skus: RawSku[]
 ): Promise<Map<string, VelocityResult>> {
   const now = new Date();
+  const cutoff90d = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString();
   const cutoff30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const cutoff7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -194,7 +224,7 @@ async function calculateVelocities(
     .from("orders")
     .select("line_items, created_at, status")
     .in("status", completedStatuses)
-    .gte("created_at", cutoff30d);
+    .gte("created_at", cutoff90d);
 
   if (error) throw new Error(`calculateVelocities: ${error.message}`);
 
@@ -212,6 +242,7 @@ async function calculateVelocities(
   // For variations, vid takes priority
 
   // Accumulators: sku → qty sold per window
+  const qty90d = new Map<string, number>();
   const qty30d = new Map<string, number>();
   const qty7d = new Map<string, number>();
   // Earliest sale date per SKU (for insufficient data check)
@@ -221,6 +252,7 @@ async function calculateVelocities(
     const lineItems: LineItem[] = Array.isArray(order.line_items) ? order.line_items : [];
     const orderDate: string = order.created_at;
     const inLast7d = orderDate >= cutoff7d;
+    const inLast30d = orderDate >= cutoff30d;
 
     for (const item of lineItems) {
       let sku: string | undefined;
@@ -237,7 +269,10 @@ async function calculateVelocities(
       if (!sku) continue;
 
       const qty = item.qty ?? 0;
-      qty30d.set(sku, (qty30d.get(sku) ?? 0) + qty);
+      qty90d.set(sku, (qty90d.get(sku) ?? 0) + qty);
+      if (inLast30d) {
+        qty30d.set(sku, (qty30d.get(sku) ?? 0) + qty);
+      }
       if (inLast7d) {
         qty7d.set(sku, (qty7d.get(sku) ?? 0) + qty);
       }
@@ -257,7 +292,7 @@ async function calculateVelocities(
     .from("orders")
     .select("line_items, created_at, status")
     .in("status", completedStatuses)
-    .lt("created_at", cutoff30d)
+    .lt("created_at", cutoff90d)
     .order("created_at", { ascending: true })
     .limit(1000);
 
@@ -280,12 +315,15 @@ async function calculateVelocities(
   const result = new Map<string, VelocityResult>();
 
   for (const s of skus) {
+    const sold90 = qty90d.get(s.sku) ?? 0;
     const sold30 = qty30d.get(s.sku) ?? 0;
     const sold7 = qty7d.get(s.sku) ?? 0;
     result.set(s.sku, {
       sku: s.sku,
       velocity7d: sold7 / 7,
       velocity30d: sold30 / 30,
+      units30d: sold30,
+      units90d: sold90,
       firstSaleDate: firstSale.get(s.sku) ?? null,
     });
   }
@@ -380,6 +418,8 @@ export async function getStockHealth(sb: SupabaseClient): Promise<InventorySumma
     const vel = velocityMap.get(raw.sku);
     const velocity7d = vel?.velocity7d ?? 0;
     const velocity30d = vel?.velocity30d ?? 0;
+    const units30d = vel?.units30d ?? 0;
+    const units90d = vel?.units90d ?? 0;
     const velocityUsed = Math.max(velocity7d, velocity30d);
     const incomingQty = incomingMap.get(raw.sku) ?? 0;
     const firstSaleDate = vel?.firstSaleDate ?? null;
@@ -399,10 +439,14 @@ export async function getStockHealth(sb: SupabaseClient): Promise<InventorySumma
       productName: raw.productName,
       productId: raw.productId,
       variationId: raw.variationId,
+      slug: raw.slug,
+      imageUrl: raw.imageUrl,
       stockQty: raw.stockQty,
       velocityUsed,
       velocity7d,
       velocity30d,
+      units30d,
+      units90d,
       incomingQty,
       daysRemaining,
       recommendedOrderQty,
