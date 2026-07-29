@@ -1,0 +1,34 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "postmark-inbound-us",
+  "main": "src/index.js",
+  "compatibility_date": "2026-07-29",
+
+  // Hard-pinned to the Shimeru Knives Cloudflare account. This is a safety
+  // guard: wrangler refuses to deploy if the active credentials belong to a
+  // different account, so a stray login (e.g. the SyncSpider work account)
+  // cannot deploy this Worker to the wrong place.
+  "account_id": "903198f95cb0b7481c8cd608cf56ba59",
+
+  "observability": {
+    "enabled": true
+  },
+
+  // Must be deployed into the account that owns this bucket
+  // (903198f95cb0b7481c8cd608cf56ba59). See README before deploying.
+  "r2_buckets": [
+    {
+      "binding": "ATTACHMENTS",
+      "bucket_name": "affiliate-content"
+    }
+  ],
+
+  "vars": {
+    "FORWARD_URL": "https://us.shimeruknives.co.uk/api/webhooks/postmark/inbound",
+    "BUCKET_NAME": "affiliate-content"
+  }
+
+  // Secrets, set via `wrangler secret put` (never commit these):
+  //   HOOK_PATH_SECRET  random string; the Postmark hook URL must end in it
+  //   PROXY_SECRET      shared with Vercel env INBOUND_PROXY_SECRET
+}

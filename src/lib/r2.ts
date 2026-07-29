@@ -12,6 +12,7 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -79,6 +80,26 @@ export async function putObject(
 export async function presignDownload(key: string, ttlSeconds = 3600): Promise<string> {
   const cmd = new GetObjectCommand({ Bucket: R2_BUCKET, Key: key });
   return getSignedUrl(client(), cmd, { expiresIn: ttlSeconds });
+}
+
+/**
+ * Reads a stored object back into memory. Used to drain attachments that the
+ * inbound proxy Worker staged in R2, so they can be moved into their final
+ * home. Server-side fetches have no size cap (unlike the 4.5MB Vercel request
+ * body limit that made the proxy necessary in the first place).
+ */
+export async function getObjectBytes(key: string): Promise<Buffer> {
+  const cmd = new GetObjectCommand({ Bucket: R2_BUCKET, Key: key });
+  const res = await client().send(cmd);
+  if (!res.Body) throw new Error(`R2 object has no body: ${key}`);
+  const bytes = await res.Body.transformToByteArray();
+  return Buffer.from(bytes);
+}
+
+/** Removes a staged object once it has been moved to its final home. */
+export async function deleteObject(key: string): Promise<void> {
+  const cmd = new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key });
+  await client().send(cmd);
 }
 
 export function kindFromContentType(contentType: string): "video" | "image" | "file" {

@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendSupportAdminNotification } from "@/lib/support-notifications";
 import { sendTransactionalEmail } from "@/lib/postmark";
-import { putObject, kindFromContentType, r2Configured } from "@/lib/r2";
+import {
+  putObject,
+  getObjectBytes,
+  deleteObject,
+  kindFromContentType,
+  r2Configured,
+} from "@/lib/r2";
 import { htmlToText } from "@/lib/html-to-text";
 import type { AffiliateAttachment } from "@/lib/affiliate-attachments";
 
@@ -15,10 +21,20 @@ const AFFILIATE_ADMIN_URL = "https://us.shimeruknives.co.uk/admin?tab=affiliates
 type PostmarkHeader = { Name: string; Value: string };
 type PostmarkAttachment = {
   Name: string;
-  Content: string;
+  /** Base64 bytes. Present when Postmark posts us directly. */
+  Content?: string;
   ContentType: string;
   ContentLength: number;
   ContentID?: string;
+  /**
+   * R2 object key. Present when the inbound proxy Worker has already staged
+   * the bytes, which is how anything over Vercel's 4.5MB request body limit
+   * reaches us at all. Mutually exclusive with Content in practice.
+   */
+  Key?: string;
+  Bucket?: string;
+  /** Set by the proxy when an attachment could not be staged. */
+  Skipped?: string;
 };
 type PostmarkInboundPayload = {
   From: string;
@@ -73,6 +89,17 @@ function extractAffiliateIdFromHeader(headerValue: string | null): string | null
 }
 
 /**
+ * Resolves an attachment to raw bytes regardless of how it reached us: inline
+ * base64 when Postmark posts here directly, or an R2 key when the inbound proxy
+ * Worker staged it first. Returns null for attachments the proxy had to skip.
+ */
+async function attachmentBytes(a: PostmarkAttachment): Promise<Buffer | null> {
+  if (a.Key) return getObjectBytes(a.Key);
+  if (a.Content) return Buffer.from(a.Content, "base64");
+  return null;
+}
+
+/**
  * Uploads inbound email attachments to the affiliate R2 bucket and returns them
  * in the AffiliateAttachment shape (key only — view URLs are presigned on read),
  * matching portal uploads so they render in the portal and admin thread. Skips
@@ -89,16 +116,24 @@ async function storeAffiliateEmailAttachments(
   const stored: AffiliateAttachment[] = [];
   for (const a of attachments) {
     try {
-      const buffer = Buffer.from(a.Content, "base64");
       const contentType = a.ContentType || "application/octet-stream";
       const safeName = sanitizeFilename(a.Name || "file");
-      const key = `${affiliateId}/email/${safeMsgId}/${Date.now()}-${safeName}`;
-      await putObject(key, buffer, contentType);
+
+      // Already in R2 courtesy of the proxy — keep the staged key rather than
+      // round-tripping the bytes through Vercel just to rewrite the path.
+      let key = a.Key ?? null;
+      if (!key) {
+        const buffer = await attachmentBytes(a);
+        if (!buffer) continue;
+        key = `${affiliateId}/email/${safeMsgId}/${Date.now()}-${safeName}`;
+        await putObject(key, buffer, contentType);
+      }
+
       stored.push({
         name: a.Name || safeName,
         key,
         content_type: contentType,
-        size: a.ContentLength ?? buffer.length,
+        size: a.ContentLength ?? 0,
         kind: kindFromContentType(contentType),
       });
     } catch (err) {
@@ -128,7 +163,18 @@ async function processAttachments(
 
   for (const attachment of attachments) {
     try {
-      const buffer = Buffer.from(attachment.Content, "base64");
+      if (attachment.Skipped) {
+        console.error(
+          "[postmark inbound] proxy could not stage attachment:",
+          attachment.Name,
+          attachment.Skipped
+        );
+        continue;
+      }
+
+      const buffer = await attachmentBytes(attachment);
+      if (!buffer) continue;
+
       const safeName = sanitizeFilename(attachment.Name || "file");
       const objectPath = `${ticketId}/${messageId}/${Date.now()}-${safeName}`;
 
@@ -157,6 +203,17 @@ async function processAttachments(
         size: attachment.ContentLength,
       });
 
+      // Support attachments live in Supabase Storage, so the proxy's staged
+      // copy is now redundant. Failing to clean up is not worth losing the
+      // message over, hence the swallowed error.
+      if (attachment.Key) {
+        try {
+          await deleteObject(attachment.Key);
+        } catch (cleanupErr) {
+          console.error("[postmark inbound] R2 cleanup failed:", attachment.Key, cleanupErr);
+        }
+      }
+
       // Rewrite inline cid: references so the admin UI can display embedded images
       if (attachment.ContentID && updatedHtml) {
         const cid = attachment.ContentID.replace(/[<>]/g, "");
@@ -172,6 +229,15 @@ async function processAttachments(
 }
 
 export async function POST(req: NextRequest) {
+  // Pins this endpoint to the inbound proxy once cutover is done. Until the
+  // env var is set the check is skipped, so this ships safely while Postmark
+  // still posts here directly. Before this, anyone who knew the URL could
+  // fabricate a support ticket.
+  const expectedSecret = process.env.INBOUND_PROXY_SECRET;
+  if (expectedSecret && req.headers.get("x-inbound-proxy-secret") !== expectedSecret) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   let payload: PostmarkInboundPayload;
   try {
     payload = (await req.json()) as PostmarkInboundPayload;
