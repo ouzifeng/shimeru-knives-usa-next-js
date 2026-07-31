@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { storeConfig } from "../../store.config";
-import { EcommanderBadge } from "./ecommander-badge";
 
 export function Footer() {
   return (
@@ -87,13 +86,6 @@ export function Footer() {
             </ul>
           </div>
         </div>
-
-        {/* Store reviews */}
-        {storeConfig.showReviews && (
-          <div className="border-t border-background/10 mt-14 pt-8 flex justify-center">
-            <EcommanderBadge />
-          </div>
-        )}
 
         {/* Region switcher */}
         <div className="border-t border-background/10 mt-14 pt-6 flex justify-center">

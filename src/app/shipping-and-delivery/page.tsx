@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
+import { DeliveryEstimate } from "@/components/delivery-estimate";
+import {
+  DELIVERY_BANDS,
+  DELIVERY_BAND_ORDER,
+  DELIVERY_STATES,
+} from "@/content/delivery-estimates";
 
 export const metadata: Metadata = {
   title: "Shipping and Delivery",
-  description: "Free standard US shipping on all orders. Express shipping available. Shipped from our US warehouse.",
+  description: "Free standard US shipping on all orders. Shipped from our US warehouse.",
 };
 
 export default function ShippingPage() {
@@ -15,25 +21,56 @@ export default function ShippingPage() {
       <div className="prose-sm space-y-8 text-sm leading-relaxed text-foreground/80">
         <section>
           <h2 className="text-base font-medium text-foreground mb-3">
-            Standard Shipping: 3–5 business days
+            Standard Shipping: 1–5 business days
           </h2>
           <ul className="list-disc pl-5 space-y-2">
             <li>Free on all orders</li>
-            <li>Shipped from our US warehouse</li>
+            <li>Shipped from our warehouse in Bolingbrook, Illinois</li>
             <li>Tracking numbers provided via email</li>
             <li>Delivery may take longer for remote locations</li>
           </ul>
+          <div className="mt-5">
+            <DeliveryEstimate />
+          </div>
         </section>
 
         <section>
           <h2 className="text-base font-medium text-foreground mb-3">
-            Express Shipping: 1–3 business days, $5.99
+            Delivery Times by State
           </h2>
-          <ul className="list-disc pl-5 space-y-2">
-            <li>Available at checkout</li>
-            <li>Shipped from our US warehouse</li>
-            <li>Tracking numbers provided via email</li>
-          </ul>
+          <p className="mb-4">
+            Because we ship from Illinois, delivery time depends on how far your state is from
+            our warehouse. These are estimates, not guaranteed dates.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="py-2 pr-4 font-medium text-foreground">Estimated delivery</th>
+                  <th className="py-2 font-medium text-foreground">States</th>
+                </tr>
+              </thead>
+              <tbody>
+                {DELIVERY_BAND_ORDER.map((key) => (
+                  <tr key={key} className="border-b border-border/50 align-top">
+                    <td className="py-3 pr-4 whitespace-nowrap">{DELIVERY_BANDS[key].label}</td>
+                    <td className="py-3">
+                      {DELIVERY_STATES.filter((s) => s.band === key)
+                        .map((s) => s.name)
+                        .join(", ")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-4 text-xs text-muted-foreground">
+            Estimates assume in-stock items and same-day processing for orders placed before 1pm
+            CT. Our warehouse dispatches Monday to Friday, so orders placed on Friday afternoon or
+            over the weekend leave on the following Monday. Our carriers do deliver on Saturdays.
+            Alaska and Hawaii fall outside some carrier networks and can take longer than the
+            estimate shown.
+          </p>
         </section>
 
         <section>

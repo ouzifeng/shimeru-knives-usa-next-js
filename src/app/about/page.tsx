@@ -40,7 +40,7 @@ export default function AboutPage() {
 
         <p>
           US orders are picked, packed and shipped from our fulfillment partner in Bolingbrook,
-          Illinois, with tracked USPS shipping typically dispatched within 24 hours. Our customer
+          Illinois, with tracked shipping typically dispatched within 24 hours. Our customer
           service team responds to every enquiry within 24 hours.
         </p>
 

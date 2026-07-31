@@ -31,8 +31,8 @@ export function ProductInfoAccordion({ specs }: { specs: ProductSpecs | null }) 
 
       <Row label="Free US Shipping">
         <p>
-          Free standard US shipping (USPS, 3 to 5 business days) on all orders, or upgrade to Express
-          (1 to 3 business days) for $5.99. Every order ships from our US warehouse.
+          Free standard US shipping (1 to 5 business days, depending on your state) on all
+          orders. Every order ships from our US warehouse.
         </p>
       </Row>
 

@@ -365,9 +365,9 @@ export const ALL_PRODUCTS_SEO: CategorySeo = {
         "Hand-wash and dry immediately, never put it in the dishwasher, avoid bones and frozen food, and use a wood or composite cutting board (never glass or marble). Hone weekly with a ceramic rod and sharpen on a whetstone every 6–12 months.",
     },
     {
-      question: "Do you ship to the US?",
+      question: "Where do you ship from?",
       answer:
-        "Yes, free standard shipping on all US orders. Most orders arrive within 3–5 business days. Express shipping (1–3 business days) is available at checkout.",
+        "Our US warehouse in Illinois, never from overseas. Every order is picked, packed and shipped domestically.",
     },
   ],
 };

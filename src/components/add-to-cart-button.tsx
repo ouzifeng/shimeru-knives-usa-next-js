@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo, type ReactNode } from "react";
+import { useState, useCallback, useEffect, type ReactNode } from "react";
 import { useCartStore } from "@/lib/cart-store";
 import { VariationPicker } from "./variation-picker";
 import { formatPrice } from "@/lib/format";
@@ -8,8 +8,7 @@ import { trackAddToCart } from "@/lib/tracking";
 import { trackMetaAddToCart } from "@/components/meta-pixel";
 import { trackTikTokAddToCart } from "@/components/tiktok-pixel";
 import type { Product, ProductVariation, WCAttribute } from "@/lib/types";
-import { EcommanderBadge } from "./ecommander-badge";
-import { storeConfig } from "../../store.config";
+import { DeliveryEstimate } from "./delivery-estimate";
 
 interface Props {
   product: Product;
@@ -19,95 +18,6 @@ interface Props {
    * icons. Used to inject the "notify me when back in stock" form on OOS PDPs.
    */
   belowButton?: ReactNode;
-}
-
-// US federal holidays, update annually
-const US_HOLIDAYS: Set<string> = new Set([
-  // 2025
-  "2025-01-01", "2025-01-20", "2025-02-17", "2025-05-26",
-  "2025-06-19", "2025-07-04", "2025-09-01", "2025-10-13",
-  "2025-11-11", "2025-11-27", "2025-12-25",
-  // 2026
-  "2026-01-01", "2026-01-19", "2026-02-16", "2026-05-25",
-  "2026-06-19", "2026-07-03", "2026-09-07", "2026-10-12",
-  "2026-11-11", "2026-11-26", "2026-12-25",
-]);
-
-function isBusinessDay(date: Date): boolean {
-  const day = date.getDay();
-  if (day === 0 || day === 6) return false;
-  const iso = date.toISOString().slice(0, 10);
-  return !US_HOLIDAYS.has(iso);
-}
-
-// USPS delivers Mon-Sat (no Sunday for standard classes, no federal holidays).
-// Used for the transit estimate even though the 3PL only dispatches Mon-Fri.
-function isDeliveryDay(date: Date): boolean {
-  const day = date.getDay();
-  if (day === 0) return false;
-  const iso = date.toISOString().slice(0, 10);
-  return !US_HOLIDAYS.has(iso);
-}
-
-interface DeliveryRange {
-  from: string;
-  to: string;
-}
-
-function getEstimatedDelivery(): { standard: DeliveryRange; express: DeliveryRange } {
-  const now = new Date();
-
-  // Cutoff: 1pm Central Time (Illinois fulfillment warehouse).
-  // Compute the current hour in Central Time so customers in every browser
-  // timezone see the same dispatch logic, and it matches the cutoff stated
-  // on /shipping-and-delivery and configured in Merchant Center.
-  const ctHour = parseInt(
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/Chicago",
-      hour: "numeric",
-      hour12: false,
-    }).format(now),
-    10,
-  );
-
-  const dispatchDay = new Date(now);
-  if (ctHour >= 13) {
-    dispatchDay.setDate(dispatchDay.getDate() + 1);
-  }
-
-  // 3PL only dispatches on business days (Mon-Fri, no federal holidays).
-  while (!isBusinessDay(dispatchDay)) {
-    dispatchDay.setDate(dispatchDay.getDate() + 1);
-  }
-
-  // Standard: 3-5 days. Express: 1-3 days. USPS delivers Saturday, so use
-  // delivery days (Mon-Sat) for the transit estimate. This matches USPS's
-  // own published transit windows.
-  const addDeliveryDays = (date: Date, days: number) => {
-    const result = new Date(date);
-    let added = 0;
-    while (added < days) {
-      result.setDate(result.getDate() + 1);
-      if (isDeliveryDay(result)) {
-        added++;
-      }
-    }
-    return result;
-  };
-
-  const fmt = (d: Date) =>
-    d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-
-  return {
-    standard: {
-      from: fmt(addDeliveryDays(dispatchDay, 3)),
-      to: fmt(addDeliveryDays(dispatchDay, 5)),
-    },
-    express: {
-      from: fmt(addDeliveryDays(dispatchDay, 1)),
-      to: fmt(addDeliveryDays(dispatchDay, 3)),
-    },
-  };
 }
 
 export function AddToCartButton({ product, attributes, belowButton }: Props) {
@@ -187,8 +97,6 @@ export function AddToCartButton({ product, attributes, belowButton }: Props) {
   // Show variation picker only for multi-variation products
   const showPicker = isVariable && !isSingleVariation && attributes;
 
-  const delivery = useMemo(() => getEstimatedDelivery(), []);
-
   return (
     <div className="space-y-5">
       {showPicker && (
@@ -210,24 +118,8 @@ export function AddToCartButton({ product, attributes, belowButton }: Props) {
         </div>
       )}
 
-      {/* Estimated delivery, split by shipping option to match checkout */}
-      {canAdd && (
-        <div className="text-sm text-muted-foreground space-y-1">
-          <div>
-            <span className="text-foreground font-medium">Free shipping</span>
-            <span className="mx-1.5">·</span>
-            Arrives {delivery.standard.from} – {delivery.standard.to}
-          </div>
-          <div>
-            <span className="text-foreground font-medium">Express ($5.99)</span>
-            <span className="mx-1.5">·</span>
-            Arrives {delivery.express.from} – {delivery.express.to}
-          </div>
-        </div>
-      )}
-
-      {/* Store reviews trust signal */}
-      {storeConfig.showReviews && <EcommanderBadge variant="light" />}
+      {/* Estimated delivery, narrowed by state via the zone lookup */}
+      {canAdd && <DeliveryEstimate showFreeShipping />}
 
       {/* Quantity + Add to Cart */}
       <div className="flex gap-3">
