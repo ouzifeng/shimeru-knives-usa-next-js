@@ -1,12 +1,21 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { isAdmin } from "@/lib/admin-auth";
 
-const TRACKING_KEYS = [
+// These end up in the page source of every visitor anyway, so serving them
+// publicly costs nothing.
+const PUBLIC_KEYS = [
   "ga4_measurement_id",
-  "ga4_api_secret",
   "google_ads_conversion_id",
   "google_ads_conversion_label",
 ];
+
+// The Measurement Protocol secret authorises writes to our GA4 property, so it
+// is never served to the storefront. Anyone holding it could inject fake
+// purchases and poison the data Smart Bidding learns from.
+const ADMIN_ONLY_KEYS = ["ga4_api_secret"];
+
+const TRACKING_KEYS = [...PUBLIC_KEYS, ...ADMIN_ONLY_KEYS];
 
 export async function GET() {
   const admin = getSupabaseAdmin();
@@ -19,15 +28,36 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const settings: Record<string, string> = {};
+  const all: Record<string, string> = {};
   data?.forEach((row) => {
-    settings[row.key] = row.value;
+    all[row.key] = row.value;
   });
 
-  return NextResponse.json({ settings });
+  // The Analytics component calls this on every page load, so only a signed-in
+  // admin gets the secret back.
+  const authed = await isAdmin();
+  const settings: Record<string, string> = {};
+  for (const key of PUBLIC_KEYS) {
+    if (all[key] !== undefined) settings[key] = all[key];
+  }
+  if (authed) {
+    for (const key of ADMIN_ONLY_KEYS) {
+      if (all[key] !== undefined) settings[key] = all[key];
+    }
+  }
+
+  // Lets the admin UI show whether a secret exists without revealing it.
+  return NextResponse.json({
+    settings,
+    ga4_api_secret_set: Boolean(all.ga4_api_secret),
+  });
 }
 
 export async function POST(request: Request) {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { settings } = await request.json();
 
@@ -38,10 +68,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Only allow known tracking keys
-    const filtered = Object.entries(settings).filter(([key]) =>
-      TRACKING_KEYS.includes(key)
-    );
+    const filtered = Object.entries(settings)
+      .filter(([key]) => TRACKING_KEYS.includes(key))
+      // A blank field means "not supplied", never "erase". Without this, an
+      // admin tab that loaded before a change writes its stale state back on
+      // save and silently reverts live config.
+      .filter(([, value]) => value != null && String(value).trim() !== "");
 
     if (!filtered.length) {
       return NextResponse.json(
@@ -53,7 +85,9 @@ export async function POST(request: Request) {
     const admin = getSupabaseAdmin();
     const rows = filtered.map(([key, value]) => ({
       key,
-      value: String(value),
+      // Trimmed on the way in. A trailing space on the conversion label is
+      // invisible in the UI and produces a malformed send_to target.
+      value: String(value).trim(),
       updated_at: new Date().toISOString(),
     }));
 

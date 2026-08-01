@@ -136,6 +136,22 @@ function getAdsConversionTarget(): string | undefined {
 }
 
 /**
+ * True once gtag exists and the Google Ads conversion target has resolved.
+ *
+ * Both arrive asynchronously: the Analytics component has to fetch
+ * /api/admin/tracking before it can define window.gtag or set the target. Any
+ * caller that assumes a fixed delay will silently drop the event whenever that
+ * fetch is slower, because gtag() here no-ops when window.gtag is undefined.
+ */
+export function isTrackingReady(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.gtag === "function" &&
+    Boolean(getAdsConversionTarget())
+  );
+}
+
+/**
  * Set the Google Ads conversion target. Called by the Analytics component
  * after it fetches tracking settings.
  */
