@@ -12,20 +12,114 @@ export interface Attribution {
   landing_page?: string;
   session_entry?: string;
   gclid?: string;
+  gbraid?: string;
+  wbraid?: string;
   ga_client_id?: string;
+  ga_session_id?: string;
+}
+
+// Google issues gclid on most clicks, but gbraid (app to web) and wbraid (web to
+// web) instead on iOS traffic where ATT blocks the usual click id. We only ever
+// read gclid, so those conversions arrived with no click id at all and could
+// never be uploaded to Google Ads. Order matters: gclid is the most precise.
+const CLICK_ID_KEYS = ["gclid", "gbraid", "wbraid"] as const;
+type ClickIdKey = (typeof CLICK_ID_KEYS)[number];
+
+function readClickId(
+  params: URLSearchParams
+): { key: ClickIdKey; value: string } | null {
+  for (const key of CLICK_ID_KEYS) {
+    const value = params.get(key);
+    if (value) return { key, value };
+  }
+  return null;
+}
+
+function hasClickId(data: Attribution | null): boolean {
+  return Boolean(data && CLICK_ID_KEYS.some((k) => data[k]));
 }
 
 /**
- * Capture UTM params and referrer on first page load.
- * Only stores once per session — first touch wins.
+ * Read the GA4 client id and session id from Google's own cookies.
+ *
+ * client_id lives in `_ga`, session_id in the per-property `_ga_<CONTAINER>`.
+ * Both are needed by the server-side Measurement Protocol event: without
+ * session_id GA4 cannot join it to the browser session, so it lands in a
+ * session of its own and session-scoped attribution breaks.
+ */
+function readGaCookies(): { ga_client_id?: string; ga_session_id?: string } {
+  const out: { ga_client_id?: string; ga_session_id?: string } = {};
+
+  const clientMatch = document.cookie.match(
+    /(?:^|;\s*)_ga=GA\d+\.\d+\.(.+?)(?:;|$)/
+  );
+  if (clientMatch) out.ga_client_id = clientMatch[1];
+
+  // `_ga_ABC123=GS1.1.<session_id>.<count>...` (GS2 on newer containers).
+  const sessionMatch = document.cookie.match(
+    /(?:^|;\s*)_ga_[A-Z0-9]+=GS\d\.\d\.(\d+)/
+  );
+  if (sessionMatch) out.ga_session_id = sessionMatch[1];
+
+  return out;
+}
+
+/**
+ * Capture UTM params, referrer and any Google click id.
+ *
+ * First touch wins for organic traffic, but a paid click always overrides an
+ * earlier record. Previously this returned early whenever sessionStorage held
+ * anything, so a visitor who browsed direct and then came back through an ad in
+ * the same tab had their click id thrown away and the sale looked organic.
  */
 export function captureAttribution(): void {
   if (typeof window === "undefined") return;
 
-  // Only capture once per session
-  if (sessionStorage.getItem(KEY)) return;
+  let existing: Attribution | null = null;
+  try {
+    const raw = sessionStorage.getItem(KEY);
+    if (raw) existing = JSON.parse(raw) as Attribution;
+  } catch {
+    // Corrupt entry — fall through and overwrite it.
+  }
 
   const params = new URLSearchParams(window.location.search);
+  const clickId = readClickId(params);
+
+  if (existing) {
+    const gaCookies = readGaCookies();
+
+    // Not a paid landing: keep first touch, but top up the GA ids, which are
+    // written asynchronously by gtag.js and are often absent on first capture.
+    if (!clickId) {
+      let changed = false;
+      if (!existing.ga_client_id && gaCookies.ga_client_id) {
+        existing.ga_client_id = gaCookies.ga_client_id;
+        changed = true;
+      }
+      // session_id rotates every 30 minutes of inactivity, so always refresh it.
+      if (gaCookies.ga_session_id && existing.ga_session_id !== gaCookies.ga_session_id) {
+        existing.ga_session_id = gaCookies.ga_session_id;
+        changed = true;
+      }
+      if (changed) sessionStorage.setItem(KEY, JSON.stringify(existing));
+      return;
+    }
+
+    // Same click id we already hold: nothing to re-attribute.
+    if (existing[clickId.key] === clickId.value) {
+      if (gaCookies.ga_session_id) existing.ga_session_id = gaCookies.ga_session_id;
+      if (!existing.ga_client_id && gaCookies.ga_client_id) {
+        existing.ga_client_id = gaCookies.ga_client_id;
+      }
+      sessionStorage.setItem(KEY, JSON.stringify(existing));
+      return;
+    }
+
+    // A new paid click. This session is now attributable to that click, so
+    // rebuild the record rather than merging a paid click into organic UTMs.
+  }
+
   const data: Attribution = {
     utm_source: params.get("utm_source") || undefined,
     utm_medium: params.get("utm_medium") || undefined,
@@ -37,27 +131,38 @@ export function captureAttribution(): void {
     session_entry: new Date().toISOString(),
   };
 
-  // Capture gclid (Google Ads click ID) — critical for Ads attribution
-  const gclid = params.get("gclid");
-  if (gclid) {
-    data.gclid = gclid;
+  if (clickId) {
+    data[clickId.key] = clickId.value;
     data.utm_source = data.utm_source || "google";
     data.utm_medium = data.utm_medium || "cpc";
   }
 
-  // Capture GA4 client ID from _ga cookie so server-side events match the browser session
-  const gaMatch = document.cookie.match(/(?:^|;\s*)_ga=GA\d+\.\d+\.(.+?)(?:;|$)/);
-  if (gaMatch) {
-    data.ga_client_id = gaMatch[1];
-  }
+  // Carry the GA client id forward. It identifies the browser, not the click,
+  // so a re-attributed session must not lose it.
+  const gaCookies = readGaCookies();
+  data.ga_client_id = gaCookies.ga_client_id || existing?.ga_client_id;
+  data.ga_session_id = gaCookies.ga_session_id || existing?.ga_session_id;
 
   sessionStorage.setItem(KEY, JSON.stringify(data));
 }
 
+/** True when this visit carries any Google Ads click id. */
+export function hasGoogleClickId(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return hasClickId(JSON.parse(sessionStorage.getItem(KEY) || "null"));
+  } catch {
+    return false;
+  }
+}
+
 /**
- * Update the GA4 client ID if it wasn't available on first capture.
- * The _ga cookie is set asynchronously after gtag.js loads, so we
- * re-check and patch it in on subsequent calls.
+ * Update the GA4 client and session IDs if they weren't available on first
+ * capture. The _ga cookies are set asynchronously after gtag.js loads, so we
+ * re-check and patch them in on subsequent calls.
+ *
+ * Called at checkout, which is the last point we can still read the cookies
+ * before the values are handed to Stripe metadata and used server-side.
  */
 export function refreshGaClientId(): void {
   if (typeof window === "undefined") return;
@@ -65,13 +170,21 @@ export function refreshGaClientId(): void {
     const raw = sessionStorage.getItem(KEY);
     if (!raw) return;
     const data: Attribution = JSON.parse(raw);
-    if (data.ga_client_id) return; // already have it
 
-    const gaMatch = document.cookie.match(/(?:^|;\s*)_ga=GA\d+\.\d+\.(.+?)(?:;|$)/);
-    if (gaMatch) {
-      data.ga_client_id = gaMatch[1];
-      sessionStorage.setItem(KEY, JSON.stringify(data));
+    const { ga_client_id, ga_session_id } = readGaCookies();
+    let changed = false;
+    if (!data.ga_client_id && ga_client_id) {
+      data.ga_client_id = ga_client_id;
+      changed = true;
     }
+    // Always take the freshest session id: GA4 rotates it after 30 minutes of
+    // inactivity, and a stale one would attach the purchase to a dead session.
+    if (ga_session_id && data.ga_session_id !== ga_session_id) {
+      data.ga_session_id = ga_session_id;
+      changed = true;
+    }
+
+    if (changed) sessionStorage.setItem(KEY, JSON.stringify(data));
   } catch { /* noop */ }
 }
 

@@ -19,7 +19,13 @@ interface ServerPurchaseEventParams {
   value: number;
   currency: string;
   items: MeasurementProtocolItem[];
-  gclid?: string;
+  /**
+   * GA4 session id, read from the `_ga_<CONTAINER>` cookie in the browser.
+   * Without it GA4 opens a brand new session for this event instead of
+   * attaching it to the one that actually produced the sale, which breaks
+   * session-scoped attribution and inflates the session count.
+   */
+  session_id?: string;
 }
 
 /**
@@ -40,7 +46,7 @@ export async function fireServerPurchaseEvent(
     value,
     currency,
     items,
-    gclid,
+    session_id,
   } = params;
 
   if (!measurement_id || !api_secret) {
@@ -69,8 +75,12 @@ export async function fireServerPurchaseEvent(
             quantity: item.quantity,
             price: item.price,
           })),
-          // Pass gclid as event param so GA4 can link to the Google Ads click
-          ...(gclid && { gclid }),
+          // Both are required for a Measurement Protocol event to be folded
+          // into the browser's session. Google Ads attribution is NOT set here:
+          // it comes from the click id on the session GA4 already recorded, so
+          // passing gclid as an event param (as this used to) achieved nothing.
+          ...(session_id && { session_id }),
+          engagement_time_msec: 1,
         },
       },
     ],

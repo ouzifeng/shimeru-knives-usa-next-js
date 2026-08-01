@@ -376,20 +376,37 @@ export async function POST(req: Request) {
           // Falls back to a synthetic ID for users where the cookie wasn't captured.
           const clientId = attribution?.ga_client_id || `stripe_${session.id}`;
 
+          // Real product names. These used to be sent as "Product 10969", which
+          // made the GA4 item reports useless. Cheap id/name lookup only, kept
+          // separate from the richer Telegram lookup below so a failure here
+          // cannot affect the order alert.
+          let nameById = new Map<number, string>();
+          try {
+            const { data: namedProducts } = await admin
+              .from("products")
+              .select("id, name")
+              .in("id", [...new Set(cartItems.map((i) => i.pid))]);
+            nameById = new Map(
+              (namedProducts ?? []).map((p: { id: number; name: string }) => [p.id, p.name])
+            );
+          } catch {
+            // Fall back to the id below rather than dropping the whole event.
+          }
+
           await fireServerPurchaseEvent({
             measurement_id: trackingSettings.ga4_measurement_id,
             api_secret: trackingSettings.ga4_api_secret,
             client_id: clientId,
+            session_id: attribution?.ga_session_id,
             transaction_id: session.id,
             value: amountTotal,
             currency,
             items: cartItems.map((item) => ({
               item_id: String(item.pid),
-              item_name: `Product ${item.pid}`,
+              item_name: nameById.get(item.pid) || `Product ${item.pid}`,
               quantity: item.qty,
               price: item.price || 0,
             })),
-            gclid: attribution?.gclid,
           });
         }
       } catch (trackingErr) {
