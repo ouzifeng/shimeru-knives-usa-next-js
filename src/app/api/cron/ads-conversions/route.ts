@@ -4,6 +4,7 @@ import {
   getAdsCustomer,
   getAccountTimeZone,
   readClickId,
+  toAccountTime,
   uploadConversions,
   type PendingConversion,
 } from "@/lib/google-ads-offline";
@@ -28,6 +29,12 @@ const MAX_RETRY_IDS = 100;
 const STATE_KEY = "ads_offline_upload_state";
 const ACTION_KEY = "google_ads_offline_conversion_action_id";
 
+// Per-order audit trail of what we sent and what Google said. Vercel has no
+// persistent disk, so this lives in the settings table as a capped ring buffer.
+// Read it with scripts/ads-upload-log.mjs.
+const LOG_KEY = "ads_offline_upload_log";
+const MAX_LOG_ENTRIES = 300;
+
 // A sale we should report. "refunded" is excluded because the money went back;
 // "partially_refunded" is included at its net value. Abandoned checkouts and
 // wc_failed rows were never completed purchases.
@@ -38,6 +45,23 @@ interface UploadState {
   retry: number[];
   last_run?: string;
   last_result?: unknown;
+}
+
+/** One row per order we attempted to send. Field names kept short: the whole
+ *  buffer is stored as a single settings value. */
+interface LogEntry {
+  /** when we sent it */
+  t: string;
+  /** WooCommerce order number, the id Google dedupes on */
+  wc: string;
+  /** which click id type carried it */
+  click: string;
+  value: number;
+  cur: string;
+  /** conversion_date_time exactly as Google received it */
+  when: string;
+  ok: boolean;
+  err?: string;
 }
 
 interface OrderRow {
@@ -67,7 +91,7 @@ export async function GET(req: NextRequest) {
   const { data: settingRows } = await admin
     .from("settings")
     .select("key, value")
-    .in("key", [STATE_KEY, ACTION_KEY]);
+    .in("key", [STATE_KEY, ACTION_KEY, LOG_KEY]);
 
   const settings: Record<string, string> = {};
   settingRows?.forEach((r) => {
@@ -163,11 +187,12 @@ export async function GET(req: NextRequest) {
   // ── upload ─────────────────────────────────────────────────────
   let outcome = { attempted: 0, accepted: 0, failures: [] as { orderId: string; message: string }[] };
   let uploadError: string | null = null;
+  let timeZone = "Europe/London";
 
   if (conversions.length) {
     try {
       const customer = getAdsCustomer();
-      const timeZone = await getAccountTimeZone(customer);
+      timeZone = await getAccountTimeZone(customer);
       outcome = await uploadConversions({
         customer,
         customerId: process.env.GOOGLE_ADS_CUSTOMER_ID!,
@@ -181,6 +206,36 @@ export async function GET(req: NextRequest) {
       console.error("[ads-conversions] upload failed:", err);
     }
   }
+
+  // ── audit trail ────────────────────────────────────────────────
+  // One row per order we tried to send, so a future sale can be traced from the
+  // database through to Google's answer without guessing.
+  const failureByOrder = new Map(outcome.failures.map((f) => [f.orderId, f.message]));
+  const sentAt = new Date().toISOString();
+  const newEntries: LogEntry[] = conversions.map((c) => ({
+    t: sentAt,
+    wc: c.orderId,
+    click: c.clickIdKey,
+    value: c.value,
+    cur: c.currency,
+    when: toAccountTime(c.occurredAt, timeZone),
+    ok: !uploadError && !failureByOrder.has(c.orderId),
+    ...(uploadError
+      ? { err: uploadError }
+      : failureByOrder.has(c.orderId)
+        ? { err: failureByOrder.get(c.orderId) }
+        : {}),
+  }));
+
+  let log: LogEntry[] = [];
+  try {
+    if (settings[LOG_KEY]) log = JSON.parse(settings[LOG_KEY]) as LogEntry[];
+  } catch {
+    // Unreadable buffer — start a fresh one rather than losing this run's rows.
+  }
+  // Newest first, capped. The whole buffer is one settings value, so it cannot
+  // be allowed to grow without bound.
+  log = [...newEntries, ...log].slice(0, MAX_LOG_ENTRIES);
 
   // ── persist the resume point ───────────────────────────────────
   // The watermark advances even for rows we skipped or that failed: skipped rows
@@ -216,14 +271,16 @@ export async function GET(req: NextRequest) {
   };
 
   if (!dryRun) {
-    await admin.from("settings").upsert(
-      {
-        key: STATE_KEY,
-        value: JSON.stringify(nextState),
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "key" }
-    );
+    const stamp = new Date().toISOString();
+    const writes: { key: string; value: string; updated_at: string }[] = [
+      { key: STATE_KEY, value: JSON.stringify(nextState), updated_at: stamp },
+    ];
+    // Only touch the log when there was something to record, so quiet hours do
+    // not rewrite the buffer for nothing.
+    if (newEntries.length) {
+      writes.push({ key: LOG_KEY, value: JSON.stringify(log), updated_at: stamp });
+    }
+    await admin.from("settings").upsert(writes, { onConflict: "key" });
   }
 
   return NextResponse.json({

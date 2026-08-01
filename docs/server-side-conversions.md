@@ -27,12 +27,27 @@ server path at all.
 | ID | Name | Type | State |
 |---|---|---|---|
 | 7527927767 | Purchase Shimeru Knives UK | WEBPAGE | **PRIMARY** (counted) |
-| 7705287030 | Purchase Shimeru Knives US | WEBPAGE | **PRIMARY** (counted) |
 | 7705676832 | Purchase Shimeru Knives UK (offline) | UPLOAD_CLICKS | secondary (reported only) |
-| 7705425010 | Purchase Shimeru Knives US (offline) | UPLOAD_CLICKS | secondary (reported only) |
+| 7705287030 | Purchase Shimeru Knives US | WEBPAGE | secondary (reported only) |
+| 7705425010 | Purchase Shimeru Knives US (offline) | UPLOAD_CLICKS | **PRIMARY** (counted) |
 
 Secondary means recorded and reportable, but excluded from the Conversions column
-and from Smart Bidding. **This is what makes the parallel run safe.**
+and from Smart Bidding.
+
+**UK is on the browser tag, parallel run in progress. US was swapped to
+server-side on 1 Aug** because its web tag had recorded zero conversions ever,
+so there was nothing to compare against and nothing to lose.
+
+Swap or revert either market with:
+
+```
+STORE=uk node scripts/ads-swap-primary.mjs            # tag -> server-side
+STORE=us node scripts/ads-swap-primary.mjs --revert    # server-side -> tag
+```
+
+It sets both actions in one update so the account is never momentarily counting
+both, and refuses to run if the offline action has recorded nothing (`FORCE=1`
+overrides).
 
 ### Code, both repos
 
@@ -75,6 +90,42 @@ discards a repeat upload of the same one. The watermark is a second guard.
 **It is not a gap-filler.** It uploads every order with a click id, not just the
 ones the tag missed. There is no API that tells you which orders Google already
 recorded, so selective top-up is impossible.
+
+---
+
+## 3a. The audit log
+
+Every order the cron or the backfill sends is recorded per-order in
+`settings.ads_offline_upload_log`, a capped ring buffer of the last 300 entries.
+Vercel has no persistent disk, so this is the log file.
+
+Each entry records when we sent it, the Woo order number, which click id type
+carried it, the value, the conversion timestamp exactly as Google received it,
+and whether Google accepted or rejected it with the reason.
+
+```
+node scripts/ads-upload-log.mjs            # both stores, last 7 days
+STORE=us DAYS=30 node scripts/ads-upload-log.mjs
+```
+
+It also reconciles the log against what Google actually reports, which are two
+different questions:
+
+- **accepted** means the API took it
+- **reported** means it surfaced in the account and can be bid on
+
+Verdicts it can give:
+
+| Output | Meaning |
+|---|---|
+| working end to end | sent, accepted and reported |
+| accepted but not yet reported | normal for a few hours, investigate if it lasts a day |
+| Google reports MORE than we sent | double counting, check the web action is secondary |
+| nothing sent yet | no qualifying sales, or the cron has not run |
+
+Note the log started on 1 Aug, so the 7 US orders backfilled that day are **not**
+in it. They were deliberately not re-sent to populate it, since that would have
+been a live test of dedup on an action that now feeds bidding.
 
 ---
 
