@@ -40,6 +40,44 @@ function hasClickId(data: Attribution | null): boolean {
 }
 
 /**
+ * Read the click id back out of Google's own first-party cookies.
+ *
+ * This is what closes the gap between us and the browser tag. gtag.js writes the
+ * click id to a cookie with a 90 day life, matching the conversion window, while
+ * we were holding it in sessionStorage which dies with the tab. So a visitor who
+ * clicked an ad on Monday, closed the tab, and returned direct on Thursday to buy
+ * was invisible to us but perfectly visible to Google. Reading the same cookie
+ * means the server-side upload sees every click the tag would have seen.
+ *
+ * Formats are `GCL.<timestamp>.<id>`, but the prefix is not guaranteed across
+ * gtag versions, so fall back to treating the whole value as the id.
+ */
+const CLICK_COOKIES: { cookie: string; key: ClickIdKey }[] = [
+  { cookie: "_gcl_aw", key: "gclid" },
+  { cookie: "_gcl_gb", key: "gbraid" },
+  { cookie: "_gcl_gs", key: "wbraid" },
+];
+
+function readClickIdFromCookies(): { key: ClickIdKey; value: string } | null {
+  for (const { cookie, key } of CLICK_COOKIES) {
+    const match = document.cookie.match(
+      new RegExp(`(?:^|;\\s*)${cookie}=([^;]+)`)
+    );
+    if (!match) continue;
+    const raw = decodeURIComponent(match[1]);
+    // "GCL.1690000000.<id>" -> "<id>". Rejoin the tail: ids are base64url and
+    // should not contain dots, but splitting defensively costs nothing.
+    const parts = raw.split(".");
+    const value =
+      parts.length >= 3 && /^\d+$/.test(parts[1])
+        ? parts.slice(2).join(".")
+        : raw;
+    if (value) return { key, value };
+  }
+  return null;
+}
+
+/**
  * Read the GA4 client id and session id from Google's own cookies.
  *
  * client_id lives in `_ga`, session_id in the per-property `_ga_<CONTAINER>`.
@@ -102,6 +140,16 @@ export function captureAttribution(): void {
         existing.ga_session_id = gaCookies.ga_session_id;
         changed = true;
       }
+      // Returning visitor from an earlier ad click: no click id on this URL and
+      // none in this session, but Google's 90 day cookie still holds it. This is
+      // the case that made our capture lag the tag.
+      if (!hasClickId(existing)) {
+        const fromCookie = readClickIdFromCookies();
+        if (fromCookie) {
+          existing[fromCookie.key] = fromCookie.value;
+          changed = true;
+        }
+      }
       if (changed) sessionStorage.setItem(KEY, JSON.stringify(existing));
       return;
     }
@@ -131,10 +179,18 @@ export function captureAttribution(): void {
     session_entry: new Date().toISOString(),
   };
 
-  if (clickId) {
-    data[clickId.key] = clickId.value;
-    data.utm_source = data.utm_source || "google";
-    data.utm_medium = data.utm_medium || "cpc";
+  // A click id on the URL is the current click. Failing that, Google's cookie
+  // may still hold an earlier one inside the 90 day window, which is exactly
+  // what the browser tag would attribute this sale to.
+  const resolvedClickId = clickId || readClickIdFromCookies();
+  if (resolvedClickId) {
+    data[resolvedClickId.key] = resolvedClickId.value;
+    if (clickId) {
+      // Only claim paid source/medium for a click that happened on this landing.
+      // An older cookie click id should not relabel an organic visit as cpc.
+      data.utm_source = data.utm_source || "google";
+      data.utm_medium = data.utm_medium || "cpc";
+    }
   }
 
   // Carry the GA client id forward. It identifies the browser, not the click,
@@ -182,6 +238,18 @@ export function refreshGaClientId(): void {
     if (ga_session_id && data.ga_session_id !== ga_session_id) {
       data.ga_session_id = ga_session_id;
       changed = true;
+    }
+
+    // Last chance to recover a click id before this is handed to Stripe
+    // metadata and used server-side. Unlike page load, gtag.js has certainly
+    // run by checkout, so _gcl_aw is present here even for a first visit where
+    // the cookie had not been written yet when captureAttribution ran.
+    if (!hasClickId(data)) {
+      const fromCookie = readClickIdFromCookies();
+      if (fromCookie) {
+        data[fromCookie.key] = fromCookie.value;
+        changed = true;
+      }
     }
 
     if (changed) sessionStorage.setItem(KEY, JSON.stringify(data));
