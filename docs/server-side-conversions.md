@@ -245,6 +245,21 @@ Underscore-prefixed scripts are diagnostics and are deliberately not committed.
 - **A newly created conversion action is locked for 6 hours.** Google reports this
   as `NO_CONVERSION_ACTION_FOUND`, which reads like a wrong id. Only after a while
   does it become the honest "Try importing again in 6 hours."
+- **That lock cost 98 UK orders on the first night.** The cron ran hourly while the
+  action was still locked, failed every row, and advanced its watermark past them
+  regardless, so they were never retried. Recovered by running `ads-backfill.mjs`,
+  which ignores the watermark and rescans the full window. **After creating a new
+  conversion action, always run the backfill once the lock clears**, do not rely on
+  the cron to catch up.
+- **Offline conversions take 12 to 24 hours to surface**, not the 3 hours commonly
+  quoted. Accepted is not the same as reported. Do not conclude anything from an
+  empty report on the same day.
+- **Conversions are dated by CLICK date, not upload or order date.** An order placed
+  yesterday against a click from two months ago appears on that older date. Any
+  reporting query must look back the full 90 days or it will find nothing.
+- **Counting populated `results` overstates acceptance.** Google fills in a result
+  entry even for rows it simultaneously reports in `partial_failure_error`. Count
+  from the decoded per-row errors instead.
 - **`validate_only` never populates `results`.** Counting them reports zero
   accepted on every dry run. Success on a dry run means *no partial failure*.
 - **`partial_failure_error.message` is only a batch summary.** The real per-row

@@ -246,9 +246,22 @@ export async function GET(req: NextRequest) {
     state.last_order_id
   );
 
-  const failedOrderIds = new Set(outcome.failures.map((f) => f.orderId));
+  // Some rejections can never succeed no matter how often we resend: a click
+  // that has aged out of the window only gets older. Retrying those forever
+  // burns an API call every hour and floods the audit log with the same rows.
+  const isTerminal = (message: string) =>
+    /click-through window|precedes the click|before this conversion|expired|too old/i.test(
+      message
+    );
+
+  const retryableFailures = outcome.failures.filter(
+    (f) => !isTerminal(f.message)
+  );
+  const abandoned = outcome.failures.filter((f) => isTerminal(f.message));
+
+  const retryableOrderIds = new Set(retryableFailures.map((f) => f.orderId));
   const stillFailing = rows
-    .filter((o) => failedOrderIds.has(String(o.wc_order_id)))
+    .filter((o) => retryableOrderIds.has(String(o.wc_order_id)))
     .map((o) => o.id);
 
   // A transport-level failure means nothing was attempted, so keep the whole
@@ -265,7 +278,8 @@ export async function GET(req: NextRequest) {
       considered: rows.length,
       uploaded: outcome.accepted,
       skipped_no_click_id: skippedNoClickId,
-      failures: outcome.failures.slice(0, 10),
+      abandoned_click_expired: abandoned.length,
+      failures: retryableFailures.slice(0, 10),
       error: uploadError,
     },
   };
@@ -290,7 +304,9 @@ export async function GET(req: NextRequest) {
     with_click_id: conversions.length,
     skipped_no_click_id: skippedNoClickId,
     uploaded: outcome.accepted,
-    failures: outcome.failures.slice(0, 10),
+    // Clicks aged out of the 90 day window. Never retried: they cannot recover.
+    abandoned_click_expired: abandoned.length,
+    failures: retryableFailures.slice(0, 10),
     error: uploadError,
     watermark: nextState.last_order_id,
     retry_queued: nextState.retry.length,
