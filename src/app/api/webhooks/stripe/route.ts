@@ -217,6 +217,28 @@ export async function POST(req: Request) {
         }
       }
 
+      // ── Decrement the Supabase stock mirror at purchase ─────────
+      // WooCommerce reduces its own authoritative stock when the order above is
+      // created; mirror that immediately so the storefront and checkout gate
+      // reflect the sale within seconds instead of waiting for the 5-minute
+      // sync (the lag that let a promo oversell). The sync and variation cache
+      // reconcile these values back to WC truth on their next tick, so this is
+      // a freshness layer only. Best-effort: a failure here must never 500 the
+      // webhook (that would make Stripe retry and duplicate the order).
+      if (wcOrder) {
+        try {
+          await admin.rpc("apply_stock_decrement", {
+            items: cartItems.map((i) => ({
+              pid: i.pid,
+              qty: i.qty,
+              ...(i.vid ? { vid: i.vid } : {}),
+            })),
+          });
+        } catch (stockErr) {
+          console.error("Stock mirror decrement failed:", session.id, stockErr);
+        }
+      }
+
       // ── Retrieve Stripe fee from balance transaction ────────────
       let stripeFee = 0;
       let stripeNet = 0;

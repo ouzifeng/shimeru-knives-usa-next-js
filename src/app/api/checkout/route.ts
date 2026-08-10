@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     const productIds = [...new Set(items.map((i) => i.productId))];
     const { data: dbProducts } = await supabase
       .from("products")
-      .select("id, price, sale_price, on_sale, stock_status, name")
+      .select("id, price, sale_price, on_sale, stock_status, stock_quantity, name")
       .in("id", productIds);
 
     if (!dbProducts?.length) {
@@ -58,6 +58,21 @@ export async function POST(req: NextRequest) {
     }
 
     const productMap = new Map(dbProducts.map((p) => [p.id, p]));
+
+    // Variable products hold their real stock on the variation rows, not the
+    // parent — the parent stock_status only flips once EVERY variation sells
+    // out. So for any variation line we must gate on the child row, else a
+    // sold-out size/handle sails through. Fetch those variations up front.
+    const variationIds = [
+      ...new Set(items.map((i) => i.variationId).filter((v): v is number => !!v)),
+    ];
+    const { data: dbVariations } = variationIds.length
+      ? await supabase
+          .from("product_variations")
+          .select("id, stock_status, stock_quantity")
+          .in("id", variationIds)
+      : { data: [] as { id: number; stock_status: string; stock_quantity: number | null }[] };
+    const variationMap = new Map((dbVariations ?? []).map((v) => [v.id, v]));
 
     for (const item of items) {
       const dbProduct = productMap.get(item.productId);
@@ -67,9 +82,38 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
-      if (dbProduct.stock_status === "outofstock") {
+      // Gate on the row that actually owns the stock: the variation for a
+      // variation line, otherwise the simple product itself.
+      const stockRow = item.variationId
+        ? variationMap.get(item.variationId)
+        : dbProduct;
+      if (item.variationId && !stockRow) {
+        return NextResponse.json(
+          { error: `The selected option for "${dbProduct.name}" is no longer available` },
+          { status: 400 }
+        );
+      }
+      if (stockRow?.stock_status === "outofstock") {
         return NextResponse.json(
           { error: `"${dbProduct.name}" is out of stock` },
+          { status: 400 }
+        );
+      }
+      // Quantity gate: block when the cart wants more than the tracked count.
+      // Only applies to in-stock, count-managed items — onbackorder is allowed
+      // and a null stock_quantity means WooCommerce isn't tracking a number.
+      if (
+        stockRow?.stock_status === "instock" &&
+        stockRow.stock_quantity != null &&
+        stockRow.stock_quantity < item.quantity
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              stockRow.stock_quantity > 0
+                ? `Only ${stockRow.stock_quantity} of "${dbProduct.name}" left in stock`
+                : `"${dbProduct.name}" is out of stock`,
+          },
           { status: 400 }
         );
       }
