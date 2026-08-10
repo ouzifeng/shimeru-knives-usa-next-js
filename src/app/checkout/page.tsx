@@ -27,6 +27,9 @@ export default function CheckoutPage() {
     code: string;
     discount_type: "percent" | "fixed_cart" | "fixed_product";
     amount: number;
+    restricted?: boolean;
+    // Product ids this coupon may discount. null/undefined = whole basket.
+    eligible_product_ids?: number[] | null;
   } | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
@@ -49,11 +52,30 @@ export default function CheckoutPage() {
   }, []);
 
   const shippingCost = selectedShipping?.cost || 0;
-  const discount = appliedCoupon
-    ? appliedCoupon.discount_type === "percent"
-      ? total() * (appliedCoupon.amount / 100)
-      : appliedCoupon.amount
-    : 0;
+
+  // A restricted coupon only discounts the products it's scoped to, so the
+  // preview must be worked out over the eligible lines alone — otherwise the
+  // total shown here wouldn't match what Stripe actually charges. An
+  // unrestricted coupon (eligible_product_ids null/undefined) covers the whole
+  // basket, preserving the old behaviour.
+  const unitOf = (p: { price: string | number }) => parseFloat(String(p.price)) || 0;
+  const eligibleLines = () => {
+    const ids = appliedCoupon?.eligible_product_ids;
+    return ids ? items.filter((i) => ids.includes(i.product.id)) : items;
+  };
+  const eligibleSubtotal = () =>
+    appliedCoupon?.eligible_product_ids
+      ? eligibleLines().reduce((s, i) => s + unitOf(i.product) * i.quantity, 0)
+      : total();
+  const eligibleUnits = () => eligibleLines().reduce((s, i) => s + i.quantity, 0);
+
+  const discount = !appliedCoupon
+    ? 0
+    : appliedCoupon.discount_type === "percent"
+      ? eligibleSubtotal() * (appliedCoupon.amount / 100)
+      : appliedCoupon.discount_type === "fixed_product"
+        ? Math.min(appliedCoupon.amount * eligibleUnits(), eligibleSubtotal())
+        : Math.min(appliedCoupon.amount, total()); // fixed_cart
 
   const handleApplyCoupon = async () => {
     setCouponLoading(true);
@@ -62,7 +84,11 @@ export default function CheckoutPage() {
       const res = await fetch("/api/validate-coupon", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: couponCode, cartTotal: total() }),
+        body: JSON.stringify({
+          code: couponCode,
+          cartTotal: total(),
+          items: items.map((i) => ({ productId: i.product.id, quantity: i.quantity })),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -182,6 +208,7 @@ export default function CheckoutPage() {
                 {appliedCoupon.discount_type === "percent"
                   ? `${appliedCoupon.amount}% off`
                   : `${formatPrice(appliedCoupon.amount)} off`}
+                {appliedCoupon.restricted ? " (selected items)" : ""}
               </span>
               <button
                 type="button"

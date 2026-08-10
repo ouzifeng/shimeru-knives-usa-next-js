@@ -339,6 +339,14 @@ export async function POST(req: Request) {
       }
 
       if (!wcOrder) {
+        // A 4xx from WooCommerce (e.g. a coupon that isn't valid for this cart,
+        // or otherwise invalid order data) is permanent — retrying can never
+        // succeed. Returning 500 there makes Stripe re-deliver for ~3 days and
+        // re-alerts on every attempt. So alert once and return 200 to stop the
+        // retry storm; keep 500 only for genuinely transient (5xx/network)
+        // failures that a retry could clear.
+        const status = (lastError as { status?: number } | null)?.status;
+        const permanent = typeof status === "number" && status >= 400 && status < 500;
         console.error("Failed to create WC order after 3 attempts:", lastError);
         try {
           await sendTelegramMessage(
@@ -347,11 +355,15 @@ export async function POST(req: Request) {
             `<b>Email:</b> ${customer?.email || "—"}\n` +
             `<b>Amount:</b> ${currency} ${amountTotal.toFixed(2)}\n` +
             `<b>Error:</b> ${lastError instanceof Error ? lastError.message : "Unknown"}\n` +
-            `\nPayment was taken but WC order creation failed after 3 attempts.`
+            (permanent
+              ? `\nPayment was taken but WooCommerce rejected the order (permanent). NOT retrying — needs manual action: refund, or fix and create the order by hand.`
+              : `\nPayment was taken but WC order creation failed after 3 attempts. Stripe will retry.`)
           );
         } catch { /* non-critical */ }
-        // Return 500 so Stripe retries the webhook
-        return NextResponse.json({ error: "WC order creation failed" }, { status: 500 });
+        return NextResponse.json(
+          permanent ? { received: true, wc_failed: "permanent" } : { error: "WC order creation failed" },
+          { status: permanent ? 200 : 500 }
+        );
       }
 
       // ── Order confirmation email (Postmark) ──────────────────────

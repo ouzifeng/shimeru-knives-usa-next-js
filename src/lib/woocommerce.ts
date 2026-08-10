@@ -19,7 +19,13 @@ export async function wcFetch<T>(endpoint: string, options?: RequestInit): Promi
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`WooCommerce API error: ${res.status} ${res.statusText} — ${body.slice(0, 300)}`);
+    const err = new Error(
+      `WooCommerce API error: ${res.status} ${res.statusText} — ${body.slice(0, 300)}`
+    ) as Error & { status?: number };
+    // Expose the HTTP status so callers can distinguish a permanent 4xx
+    // rejection (e.g. an invalid coupon for the cart) from a transient 5xx.
+    err.status = res.status;
+    throw err;
   }
 
   return res.json();

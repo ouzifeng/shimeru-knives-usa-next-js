@@ -3,6 +3,7 @@ import { getStripe } from "@/lib/stripe";
 import { getShippingOptions } from "@/lib/shipping";
 import { wcFetch } from "@/lib/woocommerce";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { isRestrictedCoupon, computeCouponDiscount, type CouponCartItem } from "@/lib/coupon";
 import { storeConfig } from "../../../../store.config";
 
 interface CartItem {
@@ -22,6 +23,12 @@ interface WCCoupon {
   minimum_amount: string;
   usage_limit: number | null;
   usage_count: number;
+  product_ids: number[];
+  excluded_product_ids: number[];
+  product_categories: number[];
+  excluded_product_categories: number[];
+  exclude_sale_items: boolean;
+  limit_usage_to_x_items: number | null;
 }
 
 export async function POST(req: NextRequest) {
@@ -50,7 +57,7 @@ export async function POST(req: NextRequest) {
     const productIds = [...new Set(items.map((i) => i.productId))];
     const { data: dbProducts } = await supabase
       .from("products")
-      .select("id, price, sale_price, on_sale, stock_status, stock_quantity, name")
+      .select("id, price, sale_price, on_sale, stock_status, stock_quantity, name, categories")
       .in("id", productIds);
 
     if (!dbProducts?.length) {
@@ -182,22 +189,71 @@ export async function POST(req: NextRequest) {
             );
           }
 
-          const stripeCoupon = await stripe.coupons.create(
-            {
-              ...(wc.discount_type === "percent"
-                ? { percent_off: parseFloat(wc.amount) }
-                : {
-                    amount_off: Math.round(parseFloat(wc.amount) * 100),
-                    currency,
-                  }),
-              duration: "once",
-              name: `WC: ${wc.code}`,
-              max_redemptions: 1,
-            },
-            { idempotencyKey: `coupon_${wc.id}_${Date.now()}` }
-          );
-          discounts = [{ coupon: stripeCoupon.id }];
-          wcCouponCode = wc.code;
+          const rules = {
+            discount_type: wc.discount_type,
+            amount: parseFloat(wc.amount) || 0,
+            product_ids: wc.product_ids ?? [],
+            excluded_product_ids: wc.excluded_product_ids ?? [],
+            product_categories: wc.product_categories ?? [],
+            excluded_product_categories: wc.excluded_product_categories ?? [],
+            exclude_sale_items: !!wc.exclude_sale_items,
+            limit_usage_to_x_items: wc.limit_usage_to_x_items ?? null,
+          };
+
+          if (isRestrictedCoupon(rules)) {
+            // Product/category/sale-restricted coupon: discount ONLY the eligible
+            // lines and charge exactly that, so WooCommerce (which scopes the same
+            // coupon the same way via coupon_lines) agrees and the order doesn't
+            // get rejected. Reject outright when nothing in the basket qualifies.
+            const couponItems: CouponCartItem[] = items.map((i) => {
+              const p = productMap.get(i.productId);
+              return {
+                productId: i.productId,
+                price: i.price,
+                quantity: i.quantity,
+                categoryIds: Array.isArray(p?.categories)
+                  ? p!.categories.map((c: { id: number }) => c.id)
+                  : [],
+                onSale: !!p?.on_sale,
+              };
+            });
+            const { discount } = computeCouponDiscount(couponItems, rules);
+            if (discount <= 0) {
+              return NextResponse.json(
+                { error: `The code "${wc.code}" doesn't apply to any items in your basket` },
+                { status: 400 }
+              );
+            }
+            const stripeCoupon = await stripe.coupons.create(
+              {
+                amount_off: Math.round(discount * 100),
+                currency,
+                duration: "once",
+                name: `WC: ${wc.code}`,
+                max_redemptions: 1,
+              },
+              { idempotencyKey: `coupon_${wc.id}_${Date.now()}` }
+            );
+            discounts = [{ coupon: stripeCoupon.id }];
+            wcCouponCode = wc.code;
+          } else {
+            const stripeCoupon = await stripe.coupons.create(
+              {
+                ...(wc.discount_type === "percent"
+                  ? { percent_off: parseFloat(wc.amount) }
+                  : {
+                      amount_off: Math.round(parseFloat(wc.amount) * 100),
+                      currency,
+                    }),
+                duration: "once",
+                name: `WC: ${wc.code}`,
+                max_redemptions: 1,
+              },
+              { idempotencyKey: `coupon_${wc.id}_${Date.now()}` }
+            );
+            discounts = [{ coupon: stripeCoupon.id }];
+            wcCouponCode = wc.code;
+          }
         }
       } catch (err) {
         // If it's our own validation error, re-throw
