@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAdmin } from "@/lib/admin-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 export async function GET() {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const sb = getSupabaseAdmin();
 
   // Fetch all POs with aggregated total units from lines
@@ -26,6 +30,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const sb = getSupabaseAdmin();
 
   const body = await req.json() as {

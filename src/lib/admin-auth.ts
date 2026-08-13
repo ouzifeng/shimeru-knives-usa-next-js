@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 
 export async function isAdmin(): Promise<boolean> {
   const secret = process.env.ADMIN_PASSWORD || "";
@@ -10,5 +10,9 @@ export async function isAdmin(): Promise<boolean> {
   const [nonce, sig] = token.split(".");
   if (!nonce || !sig) return false;
   const expected = createHmac("sha256", secret).update(nonce).digest("hex");
-  return sig === expected;
+  // Constant-time compare so a timing side channel can't be used to forge a sig.
+  const sigBuf = Buffer.from(sig);
+  const expectedBuf = Buffer.from(expected);
+  if (sigBuf.length !== expectedBuf.length) return false;
+  return timingSafeEqual(sigBuf, expectedBuf);
 }

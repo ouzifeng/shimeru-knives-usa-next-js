@@ -2,6 +2,8 @@ import { MetadataRoute } from "next";
 import { supabase } from "@/lib/supabase";
 import { storeConfig } from "../../store.config";
 
+export const revalidate = 3600;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = storeConfig.url;
 

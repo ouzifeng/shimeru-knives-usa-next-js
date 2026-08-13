@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 // Daily commission lifecycle:
 //   1. Reverse commissions whose order has since been refunded or cancelled

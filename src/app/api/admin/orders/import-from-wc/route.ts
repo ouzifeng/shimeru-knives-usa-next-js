@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAdmin } from "@/lib/admin-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 // One-off backfill of historical WC orders into Supabase. Called once per
@@ -87,6 +88,9 @@ function makeOrderRow(wc: WCOrderFull) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const page = Math.max(1, Number(req.nextUrl.searchParams.get("page") || "1"));
 
   const baseUrl = process.env.NEXT_PUBLIC_WORDPRESS_URL;

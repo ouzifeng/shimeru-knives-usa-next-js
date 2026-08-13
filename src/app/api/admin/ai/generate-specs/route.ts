@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isAdmin } from "@/lib/admin-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 const SPEC_FIELDS = ["blade_length", "steel_type", "handle_material", "knife_type", "best_for"] as const;
@@ -85,6 +86,9 @@ async function callProvider(
 }
 
 export async function POST(request: Request) {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const { productIds } = await request.json();
 

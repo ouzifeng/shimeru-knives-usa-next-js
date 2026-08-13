@@ -33,6 +33,8 @@ function buildProductUrl(slug: string): string {
   return `${base}?${params.toString()}`;
 }
 
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;

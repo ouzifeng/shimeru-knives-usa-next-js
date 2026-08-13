@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAdmin } from "@/lib/admin-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 export async function GET() {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const sb = getSupabaseAdmin();
 
   // Get all published products
@@ -98,6 +102,9 @@ export async function GET() {
 
 // Update cost data for a SKU
 export async function PUT(req: NextRequest) {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const body = await req.json();
   const { sku, cogs, import: importCost, shipping } = body;
 

@@ -11,6 +11,9 @@ export async function wcFetch<T>(endpoint: string, options?: RequestInit): Promi
 
   const res = await fetch(url.toString(), {
     ...options,
+    // Cap the call so a hung WooCommerce socket can't eat the whole function
+    // budget and jam the sync lock. Callers may pass their own signal to override.
+    signal: options?.signal ?? AbortSignal.timeout(20_000),
     headers: {
       "Content-Type": "application/json",
       ...options?.headers,
@@ -66,6 +69,8 @@ export async function getProductsPage(params?: Record<string, string | number>):
   }
 
   const res = await fetch(url.toString(), {
+    // Cap the WooCommerce call so a hung socket can't stall the caller (sync).
+    signal: AbortSignal.timeout(20_000),
     headers: { "Content-Type": "application/json" },
   });
   if (!res.ok) {

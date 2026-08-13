@@ -11,6 +11,14 @@ Speke
 Liverpool
 L24 8QR`;
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 export async function POST(req: NextRequest) {
   const { orderId, email, items, reason } = await req.json();
 
@@ -28,10 +36,15 @@ export async function POST(req: NextRequest) {
     .from("orders")
     .select("id, wc_order_id, customer_email, customer_name, status, line_items, created_at")
     .eq("id", orderId)
-    .ilike("customer_email", email.trim())
     .single();
 
-  if (!order || (order.status !== "completed" && order.status !== "partially_refunded")) {
+  // Match the email in code (exact, case-insensitive) instead of a SQL ILIKE
+  // pattern, so an input like "%" cannot wildcard-match another customer's order.
+  const emailMatches =
+    !!order &&
+    (order.customer_email ?? "").trim().toLowerCase() === email.trim().toLowerCase();
+
+  if (!order || !emailMatches || (order.status !== "completed" && order.status !== "partially_refunded")) {
     return NextResponse.json(
       { error: "Order not found or not eligible." },
       { status: 400 }
@@ -133,7 +146,7 @@ export async function POST(req: NextRequest) {
     <div style="font-family:-apple-system,Helvetica,Arial,sans-serif;max-width:600px;margin:0 auto;color:#333">
       <h2 style="margin:0 0 16px;font-size:20px">Your Return Request</h2>
       <p style="margin:0 0 8px;font-size:14px">
-        Hi ${order.customer_name || "there"},
+        Hi ${escapeHtml(order.customer_name || "there")},
       </p>
       <p style="margin:0 0 16px;font-size:14px">
         We've received your return request for <strong>Order #${order.wc_order_id}</strong>. Here's what to do next:
@@ -182,7 +195,7 @@ export async function POST(req: NextRequest) {
     <div style="font-family:-apple-system,Helvetica,Arial,sans-serif;max-width:600px;margin:0 auto;color:#333">
       <h2 style="margin:0 0 16px;font-size:20px">New Return Request</h2>
       <p style="margin:0 0 8px;font-size:14px">
-        <strong>${order.customer_name || order.customer_email}</strong> has submitted a return request for <strong>Order #${order.wc_order_id}</strong>.
+        <strong>${escapeHtml(order.customer_name || order.customer_email || "")}</strong> has submitted a return request for <strong>Order #${order.wc_order_id}</strong>.
       </p>
       <table style="width:100%;border-collapse:collapse;font-size:14px;margin:16px 0">
         <thead>
@@ -193,7 +206,7 @@ export async function POST(req: NextRequest) {
         </thead>
         <tbody>${itemRows}</tbody>
       </table>
-      ${reason ? `<p style="margin:0 0 8px;font-size:14px"><strong>Reason:</strong> ${reason}</p>` : ""}
+      ${reason ? `<p style="margin:0 0 8px;font-size:14px"><strong>Reason:</strong> ${escapeHtml(String(reason))}</p>` : ""}
       <p style="margin:16px 0 0;font-size:13px;color:#666">
         Review this return in the admin panel.
       </p>

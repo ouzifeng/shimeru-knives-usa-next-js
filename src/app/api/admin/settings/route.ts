@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
+import { isAdmin } from "@/lib/admin-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 export async function GET(request: Request) {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { searchParams } = new URL(request.url);
   const keys = searchParams.get("keys")?.split(",") || [];
 
@@ -25,6 +29,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const { settings } = await request.json();
 

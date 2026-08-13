@@ -348,18 +348,30 @@ export async function POST(req: Request) {
         const status = (lastError as { status?: number } | null)?.status;
         const permanent = typeof status === "number" && status >= 400 && status < 500;
         console.error("Failed to create WC order after 3 attempts:", lastError);
-        try {
-          await sendTelegramMessage(
-            `🇺🇸 ⚠️ <b>WC Order Failed (US)</b>\n\n` +
-            `<b>Customer:</b> ${customer?.name || "Unknown"}\n` +
-            `<b>Email:</b> ${customer?.email || "—"}\n` +
-            `<b>Amount:</b> ${currency} ${amountTotal.toFixed(2)}\n` +
-            `<b>Error:</b> ${lastError instanceof Error ? lastError.message : "Unknown"}\n` +
-            (permanent
-              ? `\nPayment was taken but WooCommerce rejected the order (permanent). NOT retrying — needs manual action: refund, or fix and create the order by hand.`
-              : `\nPayment was taken but WC order creation failed after 3 attempts. Stripe will retry.`)
-          );
-        } catch { /* non-critical */ }
+        const alertText =
+          `🇺🇸 ⚠️ <b>WC Order Failed (US)</b>\n\n` +
+          `<b>Customer:</b> ${customer?.name || "Unknown"}\n` +
+          `<b>Email:</b> ${customer?.email || "—"}\n` +
+          `<b>Amount:</b> ${currency} ${amountTotal.toFixed(2)}\n` +
+          `<b>Error:</b> ${lastError instanceof Error ? lastError.message : "Unknown"}\n` +
+          (permanent
+            ? `\nPayment was taken but WooCommerce rejected the order (permanent). NOT retrying — needs manual action: refund, or fix and create the order by hand.`
+            : `\nPayment was taken but WC order creation failed after 3 attempts. Stripe will retry.`);
+        const alertSent = await sendTelegramMessage(alertText).catch(() => false);
+        if (!alertSent) {
+          // Telegram is the only signal for a paid-but-failed order. If it did
+          // not go through, fall back to email so this can never vanish silently.
+          try {
+            await sendTransactionalEmail({
+              to: "mr.davidoak@gmail.com",
+              subject: "[Shimeru US] WC order FAILED after payment - manual action needed",
+              html: `<pre>${alertText.replace(/<[^>]+>/g, "")}</pre>`,
+              tag: "wc-failed-alert",
+            });
+          } catch (e) {
+            console.error("wc_failed email fallback failed:", e);
+          }
+        }
         return NextResponse.json(
           permanent ? { received: true, wc_failed: "permanent" } : { error: "WC order creation failed" },
           { status: permanent ? 200 : 500 }

@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAdmin } from "@/lib/admin-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { id } = await params;
   const sb = getSupabaseAdmin();
 
@@ -25,6 +29,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { id } = await params;
   const sb = getSupabaseAdmin();
 

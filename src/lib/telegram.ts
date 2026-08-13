@@ -1,11 +1,11 @@
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-export async function sendTelegramMessage(text: string) {
-  if (!BOT_TOKEN || !CHAT_ID) return;
+export async function sendTelegramMessage(text: string): Promise<boolean> {
+  if (!BOT_TOKEN || !CHAT_ID) return false;
 
   try {
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -14,8 +14,16 @@ export async function sendTelegramMessage(text: string) {
         parse_mode: "HTML",
       }),
     });
+    if (!res.ok) {
+      // A 400 (e.g. a stray HTML entity in a customer name) would otherwise be
+      // lost silently. Surface it so callers can fall back to another channel.
+      console.error("Telegram message rejected:", res.status, await res.text().catch(() => ""));
+      return false;
+    }
+    return true;
   } catch (err) {
     console.error("Telegram notification failed:", err);
+    return false;
   }
 }
 

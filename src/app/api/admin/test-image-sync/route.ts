@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { isAdmin } from "@/lib/admin-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getProducts } from "@/lib/woocommerce";
 
 export async function GET() {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const admin = getSupabaseAdmin();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const results: Record<string, unknown> = {};

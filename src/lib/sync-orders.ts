@@ -14,6 +14,7 @@ import { renderOrderCancelled } from "./email-templates/order-cancelled";
 import { renderOrderRefunded } from "./email-templates/order-refunded";
 import { buildOrderStatusFromWcOrderId } from "./email-templates/order-status-data";
 import { sendTransactionalEmail } from "./postmark";
+import { alertOps } from "./alert-ops";
 
 // Fire the shipped email when an order transitions into "completed".
 // MUST be awaited (Vercel kills the container on response). Non-fatal —
@@ -234,6 +235,9 @@ export async function syncOrders(): Promise<{
       completed_at: new Date().toISOString(),
     })
     .eq("id", 1);
+
+  // A failed sync otherwise only lands in order_sync_state.errors, unwatched.
+  if (syncError) await alertOps("order sync", syncError);
 
   return { synced: totalSynced, changed: totalChanged, errors: syncError };
 }

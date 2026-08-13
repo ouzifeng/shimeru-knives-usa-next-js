@@ -3,6 +3,9 @@ import { writeFile } from "fs/promises";
 import { join } from "path";
 
 export async function POST(request: Request) {
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_WORDPRESS_URL) {
+    return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+  }
   try {
     const body = await request.json();
 

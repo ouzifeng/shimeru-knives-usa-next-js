@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
+import { isAdmin } from "@/lib/admin-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAiSettings, generateAndPushReviews } from "@/lib/reviews/generate";
 
 export const maxDuration = 300;
 
 export async function POST(request: Request) {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const { productId, count, dateFrom, dateTo } = await request.json();
 

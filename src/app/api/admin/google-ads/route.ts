@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAdmin } from "@/lib/admin-auth";
 import { GoogleAdsApi } from "google-ads-api";
 
 // US PMax campaign ID — pinned so the dashboard isn't blended with the UK campaign
@@ -6,6 +7,9 @@ import { GoogleAdsApi } from "google-ads-api";
 const CAMPAIGN_ID = "23825319027";
 
 export async function GET(req: NextRequest) {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { searchParams } = new URL(req.url);
   const from = searchParams.get("from");
   const to = searchParams.get("to");

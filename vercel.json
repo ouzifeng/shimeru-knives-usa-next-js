@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/sync/orders",
-      "schedule": "*/5 * * * *"
+      "schedule": "2-59/5 * * * *"
     },
     {
       "path": "/api/reorder-check",

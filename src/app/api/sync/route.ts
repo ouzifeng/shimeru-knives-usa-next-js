@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { syncProducts } from "@/lib/sync";
 
+// A full product sync pages through the catalogue and holds the sync lock; give
+// it headroom so a slow WooCommerce backend can't get it killed mid-write.
+export const maxDuration = 300;
+
 async function handleSync(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAdmin } from "@/lib/admin-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 export async function GET(req: NextRequest) {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const since = req.nextUrl.searchParams.get("since");
   const admin = getSupabaseAdmin();
 

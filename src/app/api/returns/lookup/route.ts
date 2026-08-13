@@ -20,10 +20,15 @@ export async function POST(req: NextRequest) {
     .from("orders")
     .select("id, wc_order_id, customer_email, customer_name, amount_total, currency, status, line_items, created_at")
     .eq("wc_order_id", Number(orderNumber))
-    .ilike("customer_email", email.trim())
     .single();
 
-  if (orderErr || !order) {
+  // Match the email in code (exact, case-insensitive) instead of a SQL ILIKE
+  // pattern, so an input like "%" cannot wildcard-match another customer's order.
+  const emailMatches =
+    !!order &&
+    (order.customer_email ?? "").trim().toLowerCase() === email.trim().toLowerCase();
+
+  if (orderErr || !order || !emailMatches) {
     return NextResponse.json(
       { error: "We couldn't find an order matching that email and order number. Please check your details and try again." },
       { status: 404 }

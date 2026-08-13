@@ -2,6 +2,7 @@ import { supabaseAdmin, getSupabaseAdmin } from "./supabase";
 import { getProducts, getProductsPage, getProductVariations } from "./woocommerce";
 import { ensureImageBucket, syncProductImages } from "./image-sync";
 import type { WCProduct } from "./types";
+import { alertOps } from "./alert-ops";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
@@ -146,6 +147,9 @@ export async function syncProducts(): Promise<{ synced: number; healed: number; 
       completed_at: new Date().toISOString(),
     })
     .eq("id", 1);
+
+  // A failed sync otherwise only lands in sync_state.errors, which nobody watches.
+  if (syncError) await alertOps("product sync", syncError);
 
   return { synced: totalSynced, healed: totalHealed, errors: syncError };
 }

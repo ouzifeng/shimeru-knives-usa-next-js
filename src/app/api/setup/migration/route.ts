@@ -3,6 +3,9 @@ import { readFile } from "fs/promises";
 import { join } from "path";
 
 export async function GET() {
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_WORDPRESS_URL) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
   try {
     const filePath = join(process.cwd(), "supabase", "migrations", "001_initial_schema.sql");
     const sql = await readFile(filePath, "utf-8");

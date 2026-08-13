@@ -47,10 +47,21 @@ export async function GET() {
   }
 
   // Lets the admin UI show whether a secret exists without revealing it.
-  return NextResponse.json({
+  const res = NextResponse.json({
     settings,
     ga4_api_secret_set: Boolean(all.ga4_api_secret),
   });
+  // The storefront (unauthenticated) calls this on every page load for public
+  // GA/Ads ids that change ~never, so let the edge cache the public response.
+  // The authed response can carry the secret, so it is never cached; Vary on
+  // Cookie keeps a public cache entry from ever being served to an admin request.
+  if (authed) {
+    res.headers.set("Cache-Control", "private, no-store");
+  } else {
+    res.headers.set("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=60");
+  }
+  res.headers.set("Vary", "Cookie");
+  return res;
 }
 
 export async function POST(request: Request) {

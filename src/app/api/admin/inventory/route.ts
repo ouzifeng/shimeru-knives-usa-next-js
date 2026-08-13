@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { isAdmin } from "@/lib/admin-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getStockHealth } from "@/lib/inventory";
 
 export async function GET() {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const sb = getSupabaseAdmin();
 
   const [health, posRes] = await Promise.all([

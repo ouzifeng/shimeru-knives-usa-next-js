@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isAdmin } from "@/lib/admin-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 // Supabase clamps single queries at db-max-rows (default 1000). Page through
@@ -51,6 +52,9 @@ async function fetchAllRows<T>(
 }
 
 export async function GET() {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const sb = getSupabaseAdmin();
 
   let ordersData: OrderRow[];

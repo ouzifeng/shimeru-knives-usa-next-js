@@ -6,12 +6,20 @@ import { storeConfig } from "../../../../store.config";
 const ADMIN_NOTIFY_EMAIL = "mr.davidoak@gmail.com";
 const BREVO_LIST_ID = 9;
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 async function notifyAdmin(productName: string, productSlug: string, email: string) {
   const productUrl = `${storeConfig.url}/product/${productSlug}`;
   const html = `<p>New back-in-stock subscription on <strong>${storeConfig.name}</strong>:</p>
 <ul>
-  <li><strong>Email:</strong> ${email}</li>
-  <li><strong>Product:</strong> <a href="${productUrl}">${productName}</a></li>
+  <li><strong>Email:</strong> ${escapeHtml(email)}</li>
+  <li><strong>Product:</strong> <a href="${productUrl}">${escapeHtml(productName)}</a></li>
 </ul>`;
   await sendTransactionalEmail({
     to: ADMIN_NOTIFY_EMAIL,

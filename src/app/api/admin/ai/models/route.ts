@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isAdmin } from "@/lib/admin-auth";
 
 interface ModelInfo {
   id: string;
@@ -66,6 +67,9 @@ async function fetchDeepSeekModels(apiKey: string): Promise<ModelInfo[]> {
 }
 
 export async function POST(request: Request) {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const { provider, apiKey } = await request.json();
 

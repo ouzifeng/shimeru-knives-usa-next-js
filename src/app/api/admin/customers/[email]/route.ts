@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAdmin } from "@/lib/admin-auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 // Customer detail — full order history + addresses + products for one email.
@@ -7,6 +8,9 @@ export async function GET(
   _req: NextRequest,
   ctx: { params: Promise<{ email: string }> }
 ) {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { email: rawEmail } = await ctx.params;
   const email = decodeURIComponent(rawEmail).toLowerCase();
   const sb = getSupabaseAdmin();
@@ -55,6 +59,9 @@ export async function PATCH(
   req: NextRequest,
   ctx: { params: Promise<{ email: string }> }
 ) {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { email: rawEmail } = await ctx.params;
   const email = decodeURIComponent(rawEmail).toLowerCase();
 
