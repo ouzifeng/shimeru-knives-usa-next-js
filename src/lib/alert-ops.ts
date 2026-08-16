@@ -3,10 +3,18 @@ import { sendTransactionalEmail } from "@/lib/postmark";
 
 const OPS_EMAIL = "mr.davidoak@gmail.com";
 
+// Kill switch. Set back to true to re-enable ops alerts (ideally after adding a
+// "only alert on N consecutive failures" guard so transient WC API blips, which
+// self-heal on the next 5-min sync, don't page). Disabled 2026-08-16 to match
+// the UK store, where a bout of WC flakiness was firing an alert every few
+// minutes for no actionable reason. When false, alertOps is a no-op.
+const OPS_ALERTS_ENABLED = false;
+
 // Best-effort operational alert for background failures (cron/sync) that would
 // otherwise only land in a DB column nobody watches. Tries Telegram first, then
 // falls back to email. Never throws, so a failing alert can't break its caller.
 export async function alertOps(context: string, err: unknown): Promise<void> {
+  if (!OPS_ALERTS_ENABLED) return;
   const detail = err instanceof Error ? err.message : String(err);
   const text =
     `🚨 <b>Ops alert (US)</b>\n\n` +
