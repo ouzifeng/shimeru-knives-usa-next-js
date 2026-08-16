@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { trackFunnelEvent } from "@/lib/funnel";
 
 interface FilterOptions {
   categories: { slug: string; name: string; count: number }[];
@@ -24,6 +25,16 @@ function FilterContent({ options, onNavigate }: { options: FilterOptions; onNavi
       params.delete(key);
     }
     params.delete("page");
+    // Which filters/categories people actually use to narrow the range.
+    // The free-text "search" box here is logged as a search, the rest as filters.
+    if (value) {
+      trackFunnelEvent(key === "search" ? "search" : "filter_applied", {
+        metadata:
+          key === "search"
+            ? { query: value, source: "listing_filter" }
+            : { filter_key: key, filter_value: value },
+      });
+    }
     router.push(`/product?${params.toString()}`);
     onNavigate?.();
   };

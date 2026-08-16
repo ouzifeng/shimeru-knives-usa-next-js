@@ -95,6 +95,7 @@ export function Header() {
               { href: "/product?category=knife-sets", label: "Knife Sets" },
               { href: "/product?on_sale=true", label: "Sale" },
               { href: "/knife-guide", label: "Knife Guide" },
+              { href: "/blog", label: "Blog" },
             ].map((link) => (
               <Link
                 key={link.href}
@@ -151,6 +152,7 @@ export function Header() {
             </div>
             <div className="p-4 mt-4 space-y-1 border-t border-border">
               {[
+                { href: "/about", label: "About Us" },
                 { href: "/contact", label: "Contact Us" },
                 { href: "/shipping-and-delivery", label: "Shipping Info" },
                 { href: "/knife-care", label: "Knife Care" },

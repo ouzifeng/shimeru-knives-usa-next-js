@@ -90,3 +90,16 @@ export function trackTikTokPurchase(transactionId: string, value: number, curren
     });
   }
 }
+
+/**
+ * Fire TikTok SubmitForm event (form submissions, ambassador applications, etc).
+ */
+export function trackTikTokLead(contentName: string, value: number = 0, currency: string = "USD") {
+  if (typeof window !== "undefined" && window.ttq) {
+    window.ttq.track("SubmitForm", {
+      content_name: contentName,
+      value,
+      currency,
+    });
+  }
+}

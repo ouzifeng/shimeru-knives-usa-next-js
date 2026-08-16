@@ -1,4 +1,4 @@
-import { getProductReviews } from "@/lib/woocommerce";
+import { getProductReviewsPage } from "@/lib/woocommerce";
 import { ProductReviews } from "./product-reviews";
 
 export async function ProductReviewsLoader({
@@ -10,9 +10,13 @@ export async function ProductReviewsLoader({
   averageRating: number;
   ratingCount: number;
 }) {
-  const reviews = ratingCount > 0
-    ? await getProductReviews(productId, { per_page: 25 }).catch(() => [])
-    : [];
+  const { reviews, totalPages } =
+    ratingCount > 0
+      ? await getProductReviewsPage(productId, 1, 10).catch(() => ({
+          reviews: [],
+          totalPages: 1,
+        }))
+      : { reviews: [], totalPages: 1 };
 
   return (
     <ProductReviews
@@ -20,6 +24,7 @@ export async function ProductReviewsLoader({
       averageRating={averageRating}
       ratingCount={ratingCount}
       initialReviews={reviews}
+      totalPages={totalPages}
     />
   );
 }

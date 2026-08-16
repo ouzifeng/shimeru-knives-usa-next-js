@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Search, X, Loader2 } from "lucide-react";
 import { formatPrice } from "@/lib/format";
+import { trackFunnelEvent } from "@/lib/funnel";
 
 interface SearchResult {
   id: number;
@@ -31,6 +32,7 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [categories, setCategories] = useState<SearchCategory[]>([]);
+  const [synonym, setSynonym] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
@@ -44,6 +46,7 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
       setQuery("");
       setResults([]);
       setCategories([]);
+      setSynonym(null);
     }
   }, [open]);
 
@@ -67,17 +70,32 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
     if (q.length < 3) {
       setResults([]);
       setCategories([]);
+      setSynonym(null);
       return;
     }
     setLoading(true);
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
       const data = await res.json();
-      setResults(data.results || []);
-      setCategories(data.categories || []);
+      const resultList = data.results || [];
+      const catList = data.categories || [];
+      setResults(resultList);
+      setCategories(catList);
+      setSynonym(typeof data.synonym === "string" ? data.synonym : null);
+      // Log the settled search (fires on pause, not per keystroke). Zero-result
+      // searches are the gold here, demand we may not be stocking.
+      trackFunnelEvent("search", {
+        metadata: {
+          query: q,
+          results_count: resultList.length,
+          categories_count: catList.length,
+          zero_results: resultList.length === 0 && catList.length === 0,
+        },
+      });
     } catch {
       setResults([]);
       setCategories([]);
+      setSynonym(null);
     } finally {
       setLoading(false);
     }
@@ -135,6 +153,13 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
         </form>
 
         <div className="max-h-[60vh] overflow-y-auto">
+          {/* Synonym redirect notice (e.g. "vegetable knife" -> nakiri) */}
+          {synonym && (results.length > 0 || categories.length > 0) && (
+            <p className="px-5 pt-4 text-sm text-muted-foreground">
+              Showing results for <span className="text-foreground font-medium capitalize">{synonym}</span>
+            </p>
+          )}
+
           {/* Category matches */}
           {categories.length > 0 && (
             <div className="px-5 pt-4 pb-2">

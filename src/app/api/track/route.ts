@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { isGoogleIp } from "@/lib/google-ip";
 
 const VALID_EVENTS = [
   "page_view",
+  "product_viewed",
   "add_to_cart",
+  "remove_from_cart",
+  "search",
+  "filter_applied",
   "checkout_viewed",
+  "coupon_applied",
+  "coupon_failed",
   "payment_started",
+  "payment_error",
   "payment_completed",
 ] as const;
 
@@ -26,6 +34,14 @@ export async function POST(req: NextRequest) {
     const forwarded = req.headers.get("x-forwarded-for") || "";
     const ip = forwarded.split(",")[0].trim() || null;
     const ua = req.headers.get("user-agent") || null;
+
+    // Silently drop events from Google's published IP ranges
+    // (Googlebot, GCP, Product Feed crawler, etc.) — they pollute
+    // funnel analytics and trigger spurious abandoned-cart rows.
+    if (await isGoogleIp(ip)) {
+      return NextResponse.json({ ok: true });
+    }
+
     const enrichedMeta = { ...(metadata || {}), ip, ua };
 
     const { error: insertError } = await getSupabaseAdmin()

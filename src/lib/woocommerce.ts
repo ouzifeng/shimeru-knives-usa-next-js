@@ -121,6 +121,36 @@ export async function getProductReviews(
   return wcFetch<ProductReview[]>(`/products/reviews?${query.toString()}`);
 }
 
+/** Like getProductReviews but also returns total count and pages from WC headers */
+export async function getProductReviewsPage(
+  productId: number,
+  page = 1,
+  perPage = 10
+): Promise<{ reviews: ProductReview[]; total: number; totalPages: number }> {
+  const url = new URL("/wp-json/wc/v3/products/reviews", BASE_URL);
+  url.searchParams.set("consumer_key", CONSUMER_KEY!);
+  url.searchParams.set("consumer_secret", CONSUMER_SECRET!);
+  url.searchParams.set("product", String(productId));
+  url.searchParams.set("per_page", String(perPage));
+  url.searchParams.set("page", String(page));
+
+  const res = await fetch(url.toString(), {
+    // Cap the WooCommerce call so a hung socket can't stall the caller (sync).
+    signal: AbortSignal.timeout(20_000),
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`WooCommerce API error: ${res.status} ${res.statusText} — ${body.slice(0, 300)}`);
+  }
+
+  const reviews: ProductReview[] = await res.json();
+  const total = parseInt(res.headers.get("x-wp-total") || "0", 10);
+  const totalPages = parseInt(res.headers.get("x-wp-totalpages") || "1", 10);
+
+  return { reviews, total, totalPages };
+}
+
 export async function createOrder(order: WCOrderPayload): Promise<WCOrder> {
   return wcFetch<WCOrder>("/orders", {
     method: "POST",

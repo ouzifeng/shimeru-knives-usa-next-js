@@ -4,7 +4,6 @@ import { Fragment, Suspense, useCallback, useEffect, useMemo, useRef, useState }
 import { useRouter, useSearchParams } from "next/navigation";
 import { InventoryTab } from "@/components/admin/inventory-tab";
 import { SupplierPricesTab } from "@/components/admin/supplier-prices-tab";
-import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AffiliatesTab } from "@/components/admin/affiliates-tab";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
@@ -4702,19 +4701,13 @@ const ADMIN_TABS = ["dashboard", "orders", "abandoned", "customers", "products",
 type AdminTab = (typeof ADMIN_TABS)[number];
 
 function AdminPageInner() {
-  const router = useRouter();
+  // The active tab is driven by the ?tab= query param. Navigation lives in the
+  // shared admin shell (admin/layout.tsx); this page only reads the param.
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
   const activeTab: AdminTab = (ADMIN_TABS as readonly string[]).includes(tabParam ?? "")
     ? (tabParam as AdminTab)
     : "dashboard";
-  const setActiveTab = useCallback((tab: AdminTab) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (tab === "dashboard") params.delete("tab");
-    else params.set("tab", tab);
-    const qs = params.toString();
-    router.replace(qs ? `/admin?${qs}` : "/admin", { scroll: false });
-  }, [router, searchParams]);
   const [syncState, setSyncState] = useState<SyncState | null>(null);
   const [productCount, setProductCount] = useState<number>(0);
   const [syncing, setSyncing] = useState(false);
@@ -4733,22 +4726,11 @@ function AdminPageInner() {
   const [stripeStatus, setStripeStatus] = useState<"checking" | "ok" | "error">("checking");
   const [shippingZones, setShippingZones] = useState<ShippingZoneData[] | null>(null);
   const [shippingError, setShippingError] = useState<string | null>(null);
-  const [pendingSupportCount, setPendingSupportCount] = useState<number>(0);
-
-  const refreshSupportCount = useCallback(async () => {
-    try {
-      const res = await fetch("/api/admin/support/tickets");
-      if (!res.ok) return;
-      const data = (await res.json()) as SupportTicket[];
-      setPendingSupportCount(data.filter((t) => t.status === "pending").length);
-    } catch {
-      // Silently ignore — count just won't update this cycle
-    }
+  // The pending-support badge lives in the shared admin shell (the sidebar).
+  // When tickets change here, tell the shell to refresh its count.
+  const refreshSupportCount = useCallback(() => {
+    window.dispatchEvent(new Event("admin:support-changed"));
   }, []);
-
-  useEffect(() => {
-    refreshSupportCount();
-  }, [activeTab, refreshSupportCount]);
 
   // Tracking settings
   const [ga4MeasurementId, setGa4MeasurementId] = useState("");
@@ -5231,15 +5213,7 @@ function AdminPageInner() {
   ) || 0;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-8 pt-6">
-      <div className="grid gap-6 md:grid-cols-[200px_minmax(0,1fr)]">
-        <AdminSidebar
-          activeTab={activeTab}
-          onChange={setActiveTab}
-          pendingSupportCount={pendingSupportCount}
-        />
-
-        <main className="min-w-0 space-y-8">
+    <main className="min-w-0 space-y-8">
 
       {activeTab === "orders" && <OrdersTab />}
       {activeTab === "abandoned" && <AbandonedTab />}
@@ -6166,9 +6140,7 @@ function AdminPageInner() {
         )}
       </div>
       </>}
-        </main>
-      </div>
-    </div>
+    </main>
   );
 }
 

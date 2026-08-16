@@ -93,12 +93,24 @@ export default function CheckoutPage() {
       const data = await res.json();
       if (!res.ok) {
         setCouponError(data.error);
+        trackFunnelEvent("coupon_failed", {
+          cart_value: total(),
+          metadata: { code: couponCode, reason: data.error ?? "invalid" },
+        });
       } else {
         setAppliedCoupon(data);
         setCouponCode("");
+        trackFunnelEvent("coupon_applied", {
+          cart_value: total(),
+          metadata: { code: data.code, discount_type: data.discount_type, amount: data.amount },
+        });
       }
     } catch {
       setCouponError("Failed to validate coupon");
+      trackFunnelEvent("coupon_failed", {
+        cart_value: total(),
+        metadata: { code: couponCode, reason: "request_failed" },
+      });
     } finally {
       setCouponLoading(false);
     }
@@ -135,8 +147,15 @@ export default function CheckoutPage() {
       if (!res.ok) throw new Error(data.error || "Failed to create checkout session");
       window.location.href = data.url;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      const msg = err instanceof Error ? err.message : "Something went wrong";
+      setError(msg);
       setLoading(false);
+      // Checkout failed before we could even reach Stripe, a hard, capturable
+      // reason someone with full intent didn't buy.
+      trackFunnelEvent("payment_error", {
+        cart_value: total() - discount + shippingCost,
+        metadata: { message: msg, stage: "create_checkout_session" },
+      });
     }
   };
 

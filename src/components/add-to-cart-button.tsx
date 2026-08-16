@@ -5,6 +5,7 @@ import { useCartStore } from "@/lib/cart-store";
 import { VariationPicker } from "./variation-picker";
 import { formatPrice } from "@/lib/format";
 import { trackAddToCart } from "@/lib/tracking";
+import { trackFunnelEvent } from "@/lib/funnel";
 import { trackMetaAddToCart } from "@/components/meta-pixel";
 import { trackTikTokAddToCart } from "@/components/tiktok-pixel";
 import type { Product, ProductVariation, WCAttribute } from "@/lib/types";
@@ -27,6 +28,24 @@ export function AddToCartButton({ product, attributes, belowButton }: Props) {
   const [singleVariation, setSingleVariation] = useState<ProductVariation | null>(null);
   const [loadingSingle, setLoadingSingle] = useState(false);
   const [qty, setQty] = useState(1);
+
+  // Explicit product-view funnel event (id, price, category, stock), fires
+  // once per PDP mount. This is what lets the digest answer "people landed on
+  // this product and did NOT buy, what did they do instead".
+  useEffect(() => {
+    trackFunnelEvent("product_viewed", {
+      product_id: product.id,
+      product_name: product.name,
+      metadata: {
+        price: product.price,
+        category: product.categories?.[0]?.name ?? null,
+        stock_status: product.stock_status,
+        on_sale: product.on_sale ?? null,
+        slug: product.slug ?? null,
+      },
+    });
+    // Only re-fire if the product itself changes.
+  }, [product.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isVariable = product.type === "variable";
 

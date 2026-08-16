@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProductReviews } from "@/lib/woocommerce";
+import { getProductReviewsPage } from "@/lib/woocommerce";
+
+const PER_PAGE = 10;
 
 export async function GET(
   request: NextRequest,
@@ -12,11 +14,16 @@ export async function GET(
   }
 
   const url = new URL(request.url);
-  const perPage = parseInt(url.searchParams.get("per_page") || "25", 10);
+  const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10) || 1);
 
-  const reviews = await getProductReviews(productId, { per_page: perPage });
-
-  return NextResponse.json(reviews, {
-    headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" },
-  });
+  try {
+    const data = await getProductReviewsPage(productId, page, PER_PAGE);
+    return NextResponse.json(data, {
+      // Cache so WooCommerce is hit ~once per product/page per hour, not per visitor
+      headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" },
+    });
+  } catch {
+    // WC unreachable — fail soft so the page doesn't break
+    return NextResponse.json({ reviews: [], total: 0, totalPages: 1 });
+  }
 }

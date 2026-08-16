@@ -1,9 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Lock, ArrowRight, LogOut, Loader2 } from "lucide-react";
+import { AdminSidebar, type AdminTab } from "@/components/admin/admin-sidebar";
+
+const ADMIN_TABS: AdminTab[] = [
+  "dashboard", "orders", "abandoned", "customers", "products", "inventory",
+  "supplier-prices", "funnel", "returns", "waiting-stock", "ambassadors",
+  "affiliates", "support", "email-logs", "email-templates", "email-marketing",
+];
+
+type SupportTicket = { status: string };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [authed, setAuthed] = useState(false);
@@ -87,18 +98,105 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="flex h-screen flex-col">
-      <header className="shrink-0 border-b">
-        <div className="mx-auto flex max-w-7xl items-center justify-end px-4 py-2">
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
+    <Suspense fallback={null}>
+      <AdminShell onLogout={handleLogout}>{children}</AdminShell>
+    </Suspense>
+  );
+}
+
+// Persistent admin chrome (header, sidebar nav, footer) shared by the main
+// /admin SPA and every detail route (orders, customers). The sidebar drives
+// navigation through the ?tab= query param so it works from any admin route.
+function AdminShell({
+  children,
+  onLogout,
+}: {
+  children: React.ReactNode;
+  onLogout: () => void;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+
+  // Highlight the section that matches the current route. Detail routes map to
+  // their parent tab; everything else reads the ?tab= param.
+  const activeTab: AdminTab = pathname?.startsWith("/admin/orders")
+    ? "orders"
+    : pathname?.startsWith("/admin/customers")
+      ? "customers"
+      : (ADMIN_TABS as string[]).includes(tabParam ?? "")
+        ? (tabParam as AdminTab)
+        : "dashboard";
+
+  const onChange = useCallback(
+    (tab: AdminTab) => {
+      router.push(tab === "dashboard" ? "/admin" : `/admin?tab=${tab}`);
+    },
+    [router],
+  );
+
+  const [pendingSupportCount, setPendingSupportCount] = useState(0);
+  const refreshSupportCount = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/support/tickets");
+      if (!res.ok) return;
+      const data = (await res.json()) as SupportTicket[];
+      setPendingSupportCount(data.filter((t) => t.status === "pending").length);
+    } catch {
+      // Silently ignore — count just won't update this cycle
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshSupportCount();
+  }, [refreshSupportCount, pathname, tabParam]);
+
+  // The Support tab dispatches this when tickets change so the badge updates.
+  useEffect(() => {
+    const handler = () => refreshSupportCount();
+    window.addEventListener("admin:support-changed", handler);
+    return () => window.removeEventListener("admin:support-changed", handler);
+  }, [refreshSupportCount]);
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <header className="sticky top-0 z-30 shrink-0 border-b bg-background/95 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2">
+          <Link href="/admin" className="text-sm font-semibold tracking-tight">
+            Shimeru Admin
+          </Link>
+          <Button variant="ghost" size="sm" onClick={onLogout}>
             <LogOut className="size-3.5" />
             Sign out
           </Button>
         </div>
       </header>
-      <div className="flex-1 overflow-y-auto">
-        {children}
+
+      <div className="mx-auto w-full max-w-7xl flex-1 px-4 pb-8 pt-6">
+        <div className="grid gap-6 md:grid-cols-[200px_minmax(0,1fr)]">
+          <AdminSidebar
+            activeTab={activeTab}
+            onChange={onChange}
+            pendingSupportCount={pendingSupportCount}
+          />
+          <div className="min-w-0">{children}</div>
+        </div>
       </div>
+
+      <footer className="shrink-0 border-t">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-muted-foreground">
+          <span>Shimeru Knives admin</span>
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline-offset-4 hover:text-foreground hover:underline"
+          >
+            View store
+          </a>
+        </div>
+      </footer>
     </div>
   );
 }

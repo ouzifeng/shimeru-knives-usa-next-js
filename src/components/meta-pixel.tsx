@@ -87,3 +87,16 @@ export function trackMetaInitiateCheckout(value: number, numItems: number, curre
     });
   }
 }
+
+/**
+ * Fire Meta Lead event (form submissions, ambassador applications, etc).
+ */
+export function trackMetaLead(contentName: string, value: number = 0, currency: string = "USD") {
+  if (typeof window !== "undefined" && typeof window.fbq === "function") {
+    window.fbq("track", "Lead", {
+      content_name: contentName,
+      value,
+      currency,
+    });
+  }
+}
