@@ -42,9 +42,9 @@ function HomepageJsonLd() {
     telephone: "+1-334-309-8138",
     address: {
       "@type": "PostalAddress",
-      streetAddress: "Kemp House, 152-160 City Road",
-      addressLocality: "London",
-      postalCode: "EC1V 2NX",
+      streetAddress: "Joylon House, Amberley Way",
+      addressLocality: "Hounslow",
+      postalCode: "TW4 6BH",
       addressCountry: "GB",
     },
     contactPoint: {

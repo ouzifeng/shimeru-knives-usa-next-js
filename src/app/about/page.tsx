@@ -104,9 +104,9 @@ export default function AboutPage() {
               UK Address
             </p>
             <p>
-              Shimeru Knives<br />
-              Kemp House, 152–160 City Road<br />
-              London, EC1V 2NX<br />
+              Shimeru Knives Ltd<br />
+              Joylon House, Amberley Way<br />
+              Hounslow, TW4 6BH<br />
               United Kingdom
             </p>
           </div>

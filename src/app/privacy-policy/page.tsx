@@ -133,9 +133,9 @@ export default function PrivacyPage() {
             The data controller responsible for your personal information is:
           </p>
           <p className="mb-3">
-            <strong>Shimeru Knives</strong><br />
-            Kemp House, 152–160 City Road<br />
-            London, EC1V 2NX<br />
+            <strong>Shimeru Knives Ltd</strong><br />
+            Joylon House, Amberley Way<br />
+            Hounslow, TW4 6BH<br />
             United Kingdom<br />
             Email:{" "}
             <a href="mailto:sales@shimeruknives.co.uk" className="text-primary underline underline-offset-2 hover:text-primary/80">
