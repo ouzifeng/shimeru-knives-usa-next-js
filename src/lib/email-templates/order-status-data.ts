@@ -174,3 +174,27 @@ export async function buildPartialRefundFromWcOrderId(
     },
   };
 }
+
+/** Preview helper: build a partial-refund email off the latest order, using a
+ *  sample partial amount (one third of the order total). Preview/test only,
+ *  live sends use buildPartialRefundFromWcOrderId with the real Stripe amount. */
+export async function buildPartialRefundFromLatestOrder(): Promise<
+  { ok: true; data: PartialRefundData } | { ok: false; reason: string }
+> {
+  const supabase = getSupabaseAdmin();
+  const { data: latest } = await supabase
+    .from("orders")
+    .select("wc_order_id, amount_total")
+    .not("wc_order_id", "is", null)
+    .neq("status", "abandoned")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!latest) {
+    return { ok: false, reason: "No order in Supabase yet to base the preview on." };
+  }
+  const total = Number(latest.amount_total ?? 0);
+  const sample = Math.max(1, Math.round(total / 3));
+  return buildPartialRefundFromWcOrderId(latest.wc_order_id as number, sample);
+}

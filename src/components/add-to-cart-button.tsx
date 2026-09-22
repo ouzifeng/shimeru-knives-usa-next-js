@@ -9,7 +9,6 @@ import { trackFunnelEvent } from "@/lib/funnel";
 import { trackMetaAddToCart } from "@/components/meta-pixel";
 import { trackTikTokAddToCart } from "@/components/tiktok-pixel";
 import type { Product, ProductVariation, WCAttribute } from "@/lib/types";
-import { DeliveryEstimate } from "./delivery-estimate";
 
 interface Props {
   product: Product;
@@ -137,8 +136,20 @@ export function AddToCartButton({ product, attributes, belowButton }: Props) {
         </div>
       )}
 
-      {/* Estimated delivery, narrowed by state via the zone lookup */}
-      {canAdd && <DeliveryEstimate showFreeShipping />}
+      {/* Shipping options, flat and plain. Deliberately not a per-state
+          estimate: two named services read faster than a zone lookup. */}
+      {canAdd && (
+        <div className="space-y-2 text-sm">
+          <div>
+            <span className="font-medium text-foreground">Standard Shipping</span>
+            <span className="block text-muted-foreground">3-5 days</span>
+          </div>
+          <div>
+            <span className="font-medium text-foreground">Express Shipping</span>
+            <span className="block text-muted-foreground">1-3 days</span>
+          </div>
+        </div>
+      )}
 
       {/* Quantity + Add to Cart */}
       <div className="flex gap-3">
