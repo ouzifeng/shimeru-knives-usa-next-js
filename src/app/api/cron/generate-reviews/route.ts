@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAiSettings, generateAndPushReviews } from "@/lib/reviews/generate";
+import { wcFetch } from "@/lib/woocommerce";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -50,10 +51,38 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+// Rank a category's products by how long they have gone without a new review,
+// stalest first, so the queue self-rotates instead of leaving unlucky products
+// to drift for weeks. One WooCommerce call covers the whole category: anything
+// absent from the newest-100 window has waited longer than everything in it,
+// so it sorts to the front. Ties keep the shuffled order, which keeps the
+// pick fair when several products are equally stale. A failed call costs
+// fairness, not the run, so we fall back to the old random pick.
+async function rankByStalest(productIds: number[]): Promise<number[]> {
+  if (productIds.length < 2) return productIds;
+  try {
+    const revs = await wcFetch<{ product_id: number; date_created: string }[]>(
+      `/products/reviews?product=${productIds.join(",")}&per_page=100&orderby=date&order=desc&status=approved`
+    );
+    const newest = new Map<number, string>();
+    for (const r of revs) {
+      if (!newest.has(r.product_id)) newest.set(r.product_id, r.date_created);
+    }
+    return shuffle(productIds).sort((a, b) =>
+      (newest.get(a) ?? "").localeCompare(newest.get(b) ?? "")
+    );
+  } catch (err) {
+    console.error("[generate-reviews] stalest ranking failed, picking at random:", err);
+    return shuffle(productIds);
+  }
+}
+
 // Spread `count` reviews across products (~2 each), capped per product.
+// `productIds` arrives already ranked stalest-first, so taking from the front
+// is what stops any one product going months without a top-up.
 function allocate(productIds: number[], count: number): Map<number, number> {
   const nProducts = Math.min(productIds.length, Math.max(1, Math.round(count / 2)));
-  const chosen = shuffle(productIds).slice(0, nProducts);
+  const chosen = productIds.slice(0, nProducts);
   const alloc = new Map<number, number>(chosen.map((id) => [id, 0]));
   let remaining = count;
   let i = 0;
@@ -191,7 +220,8 @@ export async function GET(req: NextRequest) {
     }
 
     const nameById = new Map<number, string>(products.map((p) => [p.id, p.name]));
-    const alloc = allocate(products.map((p) => p.id), count);
+    const ranked = await rankByStalest(products.map((p) => p.id));
+    const alloc = allocate(ranked, count);
 
     const perProduct: unknown[] = [];
     let pushed = 0;
