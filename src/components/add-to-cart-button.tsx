@@ -139,15 +139,15 @@ export function AddToCartButton({ product, attributes, belowButton }: Props) {
       {/* Shipping options, flat and plain. Deliberately not a per-state
           estimate: two named services read faster than a zone lookup. */}
       {canAdd && (
-        <div className="space-y-2 text-sm">
-          <div>
-            <span className="font-medium text-foreground">Standard Shipping</span>
-            <span className="block text-muted-foreground">3-5 days</span>
-          </div>
-          <div>
-            <span className="font-medium text-foreground">Express Shipping</span>
-            <span className="block text-muted-foreground">1-3 days</span>
-          </div>
+        <div className="space-y-1 text-sm">
+          <p>
+            <span className="font-medium text-foreground">Free Shipping:</span>{" "}
+            <span className="text-muted-foreground">3-5 days</span>
+          </p>
+          <p>
+            <span className="font-medium text-foreground">Express $4.99:</span>{" "}
+            <span className="text-muted-foreground">1-3 days</span>
+          </p>
         </div>
       )}
 
