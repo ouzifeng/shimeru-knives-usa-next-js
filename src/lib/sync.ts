@@ -94,35 +94,12 @@ export async function syncProducts(): Promise<{ synced: number; healed: number; 
       }
     }
 
-    // After the main sync loop, on full syncs (no modified_after), clean up deleted products
-    if (!lastSyncedAt) {
-      const allWcIds = new Set<number>();
-      let cleanPage = 1;
-      while (true) {
-        const batch = await getProducts({ per_page: 100, page: cleanPage });
-        if (!batch.length) break;
-        batch.forEach((p) => allWcIds.add(p.id));
-        cleanPage++;
-      }
-
-      const { data: sbProducts } = await admin.from("products").select("id");
-      const toDelete = (sbProducts || [])
-        .filter((p) => !allWcIds.has(p.id))
-        .map((p) => p.id);
-
-      if (toDelete.length) {
-        // Delete images from storage for removed products
-        for (const id of toDelete) {
-          const { data: files } = await admin.storage.from("product-images").list(String(id));
-          if (files?.length) {
-            await admin.storage
-              .from("product-images")
-              .remove(files.map((f) => `${id}/${f.name}`));
-          }
-        }
-        await admin.from("products").delete().in("id", toDelete);
-      }
-    }
+    // Drop products that no longer exist in WooCommerce. The incremental sync
+    // above only sees products WooCommerce reports as modified, and a deleted
+    // product is never reported, so without this check a deletion would
+    // live on in Supabase forever (a dead storefront page, and the review cron
+    // failing on it each week).
+    totalHealed += await removeDeletedProducts(admin);
 
     // Self-heal category relations. The sync above is incremental: it only
     // rewrites relation rows for products WooCommerce reports as modified, so
@@ -152,6 +129,59 @@ export async function syncProducts(): Promise<{ synced: number; healed: number; 
   if (syncError) await alertOps("product sync", syncError);
 
   return { synced: totalSynced, healed: totalHealed, errors: syncError };
+}
+
+// Refuse to delete more than this many products in one tick. A real removal is
+// one or two products; anything bigger is far more likely a bad WooCommerce
+// listing than a genuine catalogue wipe, so alert and leave the data alone.
+const MAX_REMOVALS_PER_TICK = 5;
+
+/**
+ * Delete Supabase products whose ID is absent from WooCommerce, plus their
+ * stored images (relation rows go via cascade). The default WooCommerce
+ * listing includes drafts and private products, so only deleted or trashed
+ * ones go.
+ * Returns the number of products removed.
+ */
+async function removeDeletedProducts(
+  admin: ReturnType<typeof getSupabaseAdmin>
+): Promise<number> {
+  const allWcIds = new Set<number>();
+  for (let page = 1; ; page++) {
+    const batch = await getProducts({ per_page: 100, page });
+    batch.forEach((p) => allWcIds.add(p.id));
+    if (batch.length < 100) break;
+  }
+  // An empty listing is never a real catalogue; treat it as a bad response.
+  if (!allWcIds.size) return 0;
+
+  const { data: sbProducts, error } = await admin.from("products").select("id");
+  if (error) throw new Error(`deleted-product check read failed: ${error.message}`);
+  const toDelete = (sbProducts || [])
+    .filter((p) => !allWcIds.has(p.id))
+    .map((p) => p.id);
+  if (!toDelete.length) return 0;
+
+  if (toDelete.length > MAX_REMOVALS_PER_TICK) {
+    await alertOps(
+      "product sync",
+      `${toDelete.length} Supabase products missing from WooCommerce (limit ${MAX_REMOVALS_PER_TICK}), not deleting: ${toDelete.join(", ")}`
+    );
+    return 0;
+  }
+
+  for (const id of toDelete) {
+    const { data: files } = await admin.storage.from("product-images").list(String(id));
+    if (files?.length) {
+      await admin.storage
+        .from("product-images")
+        .remove(files.map((f) => `${id}/${f.name}`));
+    }
+  }
+  const { error: delError } = await admin.from("products").delete().in("id", toDelete);
+  if (delError) throw new Error(`deleted-product cleanup failed: ${delError.message}`);
+  console.log(`[sync] removed products deleted from WooCommerce: ${toDelete.join(", ")}`);
+  return toDelete.length;
 }
 
 /**

@@ -248,7 +248,19 @@ export async function GET(req: NextRequest) {
         });
         pushed += outcome.pushed;
         failed += outcome.failed;
-        perProduct.push({ productId, name: outcome.productName, allocated: n, pushed: outcome.pushed, failed: outcome.failed });
+        // Carry the WooCommerce error text into the alert; without it a failed
+        // post shows only a count and the cause has to be dug out by hand.
+        const errors = Array.from(
+          new Set(outcome.results.filter((r) => !r.ok).map((r) => r.error ?? "Failed"))
+        );
+        perProduct.push({
+          productId,
+          name: outcome.productName,
+          allocated: n,
+          pushed: outcome.pushed,
+          failed: outcome.failed,
+          ...(errors.length ? { errors } : {}),
+        });
       } catch (err) {
         failed += n;
         perProduct.push({
