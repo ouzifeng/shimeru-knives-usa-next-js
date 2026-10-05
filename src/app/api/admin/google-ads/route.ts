@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin-auth";
 import { GoogleAdsApi } from "google-ads-api";
 
-// US PMax campaign ID — pinned so the dashboard isn't blended with the UK campaign
+// US campaign IDs, pinned so the dashboard isn't blended with the UK campaign
 // (same Google Ads account is shared across both stores).
-const CAMPAIGN_ID = "23825319027";
+// 23825319027 = USA - Shimeru Knives (PMax, paused 2026-09-28)
+// 24298407770 = USA - Shopping Manual CPC
+const CAMPAIGN_IDS = ["23825319027", "24298407770"];
 
 export async function GET(req: NextRequest) {
   if (!(await isAdmin())) {
@@ -18,7 +20,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "from and to required" }, { status: 400 });
   }
 
-  if (!CAMPAIGN_ID) {
+  if (CAMPAIGN_IDS.length === 0) {
     return NextResponse.json({
       totalSpend: 0,
       totalClicks: 0,
@@ -48,7 +50,7 @@ export async function GET(req: NextRequest) {
         metrics.impressions,
         metrics.conversions
       FROM campaign
-      WHERE campaign.id = ${CAMPAIGN_ID}
+      WHERE campaign.id IN (${CAMPAIGN_IDS.join(", ")})
         AND segments.date >= '${from}'
         AND segments.date <= '${to}'
       ORDER BY segments.date DESC
@@ -59,7 +61,8 @@ export async function GET(req: NextRequest) {
     let totalImpressions = 0;
     let totalConversions = 0;
 
-    const daily: { date: string; spend: number; clicks: number; impressions: number; conversions: number }[] = [];
+    // One row per campaign per day, so merge rows that share a date
+    const byDate = new Map<string, { date: string; spend: number; clicks: number; impressions: number; conversions: number }>();
 
     for (const r of results) {
       const m = r.metrics;
@@ -69,14 +72,18 @@ export async function GET(req: NextRequest) {
       totalClicks += Number(m.clicks);
       totalImpressions += Number(m.impressions);
       totalConversions += Number(m.conversions);
-      daily.push({
-        date: r.segments?.date as string,
-        spend: Math.round(spend * 100) / 100,
-        clicks: Number(m.clicks),
-        impressions: Number(m.impressions),
-        conversions: Number(m.conversions),
-      });
+      const date = r.segments?.date as string;
+      const day = byDate.get(date) ?? { date, spend: 0, clicks: 0, impressions: 0, conversions: 0 };
+      day.spend += spend;
+      day.clicks += Number(m.clicks);
+      day.impressions += Number(m.impressions);
+      day.conversions += Number(m.conversions);
+      byDate.set(date, day);
     }
+
+    const daily = [...byDate.values()]
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .map((d) => ({ ...d, spend: Math.round(d.spend * 100) / 100 }));
 
     return NextResponse.json({
       totalSpend: Math.round(totalSpend * 100) / 100,
